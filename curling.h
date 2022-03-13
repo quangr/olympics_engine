@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py
+// https://github.com/openai/gym/blob/master/gym/envs/classic_control/Curling.py
 
-#ifndef ENVPOOL_CLASSIC_CONTROL_CARTPOLE_H_
-#define ENVPOOL_CLASSIC_CONTROL_CARTPOLE_H_
+#ifndef ENVPOOL_CLASSIC_CONTROL_Curling_H_
+#define ENVPOOL_CLASSIC_CONTROL_Curling_H_
 
 #include <cmath>
 #include <random>
 
 #include "envpool/core/async_envpool.h"
 #include "envpool/core/env.h"
+#include "core.h"
 
 namespace classic_control {
 
-class CartPoleEnvFns {
+class CurlingEnvFns {
  public:
   static decltype(auto) DefaultConfig() {
     return MakeDict("max_episode_steps"_.bind(200),
@@ -43,9 +44,9 @@ class CartPoleEnvFns {
   }
 };
 
-typedef class EnvSpec<CartPoleEnvFns> CartPoleEnvSpec;
+typedef class EnvSpec<CurlingEnvFns> CurlingEnvSpec;
 
-class CartPoleEnv : public Env<CartPoleEnvSpec> {
+class CurlingEnv : public Env<CurlingEnvSpec> {
  protected:
   const double kPi = std::acos(-1);
   const double kGravity = 9.8;
@@ -65,8 +66,11 @@ class CartPoleEnv : public Env<CartPoleEnvSpec> {
   bool done_;
 
  public:
-  CartPoleEnv(const Spec& spec, int env_id)
-      : Env<CartPoleEnvSpec>(spec, env_id),
+  int add(int a,int b){
+    return add(a,b);
+  }
+  CurlingEnv(const Spec& spec, int env_id)
+      : Env<CurlingEnvSpec>(spec, env_id),
         max_episode_steps_(spec.config["max_episode_steps"_]),
         elapsed_step_(max_episode_steps_ + 1),
         dist_(-kInitRange, kInitRange),
@@ -98,7 +102,7 @@ class CartPoleEnv : public Env<CartPoleEnvSpec> {
         (kGravity * sintheta - costheta * temp) /
         (kLength * (4.0 / 3.0 - kMassPole * costheta * costheta / kMassTotal));
     double x_acc = temp - kMassPoleLength * theta_acc * costheta / kMassTotal;
-
+    add(1,2);
     x_ += kTau * x_dot_;
     x_dot_ += kTau * x_acc;
     theta_ += kTau * theta_dot_;
@@ -121,8 +125,8 @@ class CartPoleEnv : public Env<CartPoleEnvSpec> {
   }
 };
 
-typedef AsyncEnvPool<CartPoleEnv> CartPoleEnvPool;
+typedef AsyncEnvPool<CurlingEnv> CurlingEnvPool;
 
 }  // namespace classic_control
 
-#endif  // ENVPOOL_CLASSIC_CONTROL_CARTPOLE_H_
+#endif  // ENVPOOL_CLASSIC_CONTROL_Curling_H_

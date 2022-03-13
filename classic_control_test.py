@@ -15,22 +15,14 @@
 
 from typing import Any, Tuple
 
+import cv2
 import gym
 import numpy as np
 from absl.testing import absltest
+import testhelper.core
+import cv2
 
-from envpool.classic_control import (
-  AcrobotEnvSpec,
-  AcrobotGymEnvPool,
-  CartPoleEnvSpec,
-  CartPoleGymEnvPool,
-  MountainCarContinuousEnvSpec,
-  MountainCarContinuousGymEnvPool,
-  MountainCarEnvSpec,
-  MountainCarGymEnvPool,
-  PendulumEnvSpec,
-  PendulumGymEnvPool,
-)
+from envpool.classic_control import *
 
 
 class _ClassicControlEnvPoolTest(absltest.TestCase):
@@ -83,70 +75,16 @@ class _ClassicControlEnvPoolTest(absltest.TestCase):
         np.testing.assert_allclose(r0, r1[0])
         np.testing.assert_allclose(d0, d1[0])
 
-  def test_cartpole(self) -> None:
-    fmax = np.finfo(np.float32).max
-    obs_max = np.array([4.8, fmax, np.pi / 7.5, fmax])
-    self.run_deterministic_check(
-      CartPoleEnvSpec, CartPoleGymEnvPool, (-obs_max, obs_max)
-    )
-
-  def test_pendulum(self) -> None:
-    obs_max = np.array([1.0, 1.0, 8.0])
-    self.run_deterministic_check(
-      PendulumEnvSpec, PendulumGymEnvPool, (-obs_max, obs_max)
-    )
-
-  def test_mountain_car(self) -> None:
-    obs_min = np.array([-1.2, -0.07])
-    obs_max = np.array([0.6, 0.07])
-
-    self.run_deterministic_check(
-      MountainCarEnvSpec,
-      MountainCarGymEnvPool,
-      (obs_min, obs_max),
-    )
-
-    self.run_deterministic_check(
-      MountainCarContinuousEnvSpec,
-      MountainCarContinuousGymEnvPool,
-      (obs_min, obs_max),
-    )
-
-    def reset_fn(env0: gym.Env, env1: Any) -> None:
-      env0.reset()
-      obs = env1.reset()
-      env0.unwrapped.state = obs[0]
-
-    env0 = gym.make("MountainCar-v0")
-    spec = MountainCarEnvSpec(MountainCarEnvSpec.gen_config())
-    env1 = MountainCarGymEnvPool(spec)
-    self.run_align_check(env0, env1, reset_fn)
-
-    env0 = gym.make("MountainCarContinuous-v0")
-    spec = MountainCarContinuousEnvSpec(
-      MountainCarContinuousEnvSpec.gen_config()
-    )
-    env1 = MountainCarContinuousGymEnvPool(spec)
-    self.run_align_check(env0, env1, reset_fn)
-
-  def test_acrobot(self) -> None:
-    obs_max = np.array([1, 1, 1, 1, 4 * np.pi, 9 * np.pi])
-    self.run_deterministic_check(
-      AcrobotEnvSpec, AcrobotGymEnvPool, (-obs_max, obs_max)
-    )
-
-    # in envpool we use float64 but gym use float32
-
-    # def reset_fn(env0: gym.Env, env1: Any) -> None:
-    #   env0.reset()
-    #   obs, rew, done, info = env1.step(np.array([1]))
-    #   env0.unwrapped.state = np.concatenate([info["state"][0], obs[0, -2:]])
-    #   print(env0.unwrapped.state)
-
-    # env0 = gym.make("Acrobot-v1")
-    # spec = AcrobotEnvSpec(AcrobotEnvSpec.gen_config())
-    # env1 = AcrobotGymEnvPool(spec)
-    # self.run_align_check(env0, env1, reset_fn)
+  # def test_Curling(self) -> None:
+  #   fmax = np.finfo(np.float32).max
+  #   obs_max = np.array([4.8, fmax, np.pi / 7.5, fmax])
+  #   self.run_deterministic_check(
+  #     CurlingEnvSpec, CurlingGymEnvPool, (-obs_max, obs_max)
+  #   )
+  def test_add(self)->None:
+    self.assertTrue(cross_prod([1,0],[5,2])==testhelper.core.cross_prod([1,0],[5,2]))
+  # def test_point2line(self)->None:
+  #   self.assertTrue(point2line([1,0],[5,2],[2,9])==testhelper.core.cross_prod([1,0],[5,2],[2,9]))
 
 
 if __name__ == "__main__":

@@ -4,56 +4,23 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "cartpole",
-    hdrs = ["cartpole.h"],
+    name = "curling",
+    hdrs = ["curling.h",'core.h'],
+    srcs =['core.cc'],
     deps = [
+        "@eigen",
         "//envpool/core:async_envpool",
     ],
-)
-
-cc_library(
-    name = "pendulum",
-    hdrs = ["pendulum.h"],
-    deps = [
-        "//envpool/core:async_envpool",
-    ],
-)
-
-cc_library(
-    name = "mountain_car",
-    hdrs = ["mountain_car.h"],
-    deps = [
-        "//envpool/core:async_envpool",
-    ],
-)
-
-cc_library(
-    name = "mountain_car_continuous",
-    hdrs = ["mountain_car_continuous.h"],
-    deps = [
-        "//envpool/core:async_envpool",
-    ],
-)
-
-cc_library(
-    name = "acrobot",
-    hdrs = ["acrobot.h"],
-    deps = [
-        "//envpool/core:async_envpool",
-    ],
+    alwayslink = 1
 )
 
 pybind_extension(
     name = "classic_control_envpool",
     srcs = [
-        "classic_control.cc",
+        "classic_control.cc"
     ],
     deps = [
-        ":acrobot",
-        ":cartpole",
-        ":mountain_car",
-        ":mountain_car_continuous",
-        ":pendulum",
+        ":curling",
         "//envpool/core:py_envpool",
     ],
 )
@@ -70,10 +37,8 @@ py_test(
     srcs = ["classic_control_test.py"],
     deps = [
         ":classic_control",
-        requirement("absl-py"),
-        requirement("dm_env"),
-        requirement("gym"),
         requirement("numpy"),
+        requirement("absl-py"),
     ],
 )
 
