@@ -5,13 +5,13 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "curling",
-    hdrs = ["curling.h",'core.h'],
-    srcs =['core.cc'],
+    hdrs = ["curling.h",'core.h','viewer.h'],
+    srcs =['core.cc','viewer.cc','generator.cc','json.hpp','objects.hpp'],
     deps = [
         "@eigen",
         "//envpool/core:async_envpool",
-    ],
-    alwayslink = 1
+         "@pybind11"
+    ]
 )
 
 pybind_extension(
@@ -20,9 +20,9 @@ pybind_extension(
         "classic_control.cc"
     ],
     deps = [
-        ":curling",
         "//envpool/core:py_envpool",
-    ],
+        ":curling",
+    ]
 )
 
 py_library(
@@ -36,10 +36,14 @@ py_test(
     name = "classic_control_test",
     srcs = ["classic_control_test.py"],
     deps = [
-        ":classic_control",
         requirement("numpy"),
         requirement("absl-py"),
+        requirement("pygame"),
+        requirement("matplotlib"),
+        requirement("opencv-python-headless"),
     ],
+    imports=[":classic_control_envpool.so"],
+    data = [":classic_control_envpool.so"],
 )
 
 py_library(
@@ -47,5 +51,15 @@ py_library(
     srcs = ["registration.py"],
     deps = [
         "//envpool:registration",
+    ],
+)
+
+cc_test(
+    name = "core_test_test",
+    srcs = ["core_test.cc"],
+    deps = [
+        ":curling",
+        "@com_github_google_glog//:glog",
+        "@com_google_googletest//:gtest_main",
     ],
 )
