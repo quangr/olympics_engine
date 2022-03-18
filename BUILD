@@ -10,7 +10,7 @@ cc_library(
     deps = [
         "@eigen",
         "//envpool/core:async_envpool",
-         "@pybind11"
+         "@pybind11",
     ]
 )
 

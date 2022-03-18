@@ -600,12 +600,6 @@ class Arc(GameObj):
     def check_on_line(self):
         pass
 
-    def can_pass(self):
-        if self.passable:
-            return True
-        else:
-            return False
-
     def can_bounce(self):
         if self.passable:
             return False

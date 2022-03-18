@@ -6,17 +6,17 @@ using json = nlohmann::json;
 
 #include "objects.hpp"
 using json = nlohmann::json;
-void wall_t::print(std::ostream& os) const {
-  // os << "(" << this->A << ", " << this->B << ", " << this->C << ", "
-  //    << this->width << ", " << this->ball_can_pass << ", " << this->l1 <<
-  //    "\n "
-  //    << this->l2 << "\n " << this->length << ")";
-  os << "l1:" << this->l1 << "\n";
-}
-std::ostream& operator<<(std::ostream& os, const component_t& dt) {
-  dt.print(os);
-  return os;
-}
+// void wall_t::print(std::ostream& os) const {
+//   // os << "(" << this->A << ", " << this->B << ", " << this->C << ", "
+//   //    << this->width << ", " << this->ball_can_pass << ", " << this->l1 <<
+//   //    "\n "
+//   //    << this->l2 << "\n " << this->length << ")";
+//   os << "l1:" << this->l1 << "\n";
+// }
+// std::ostream& operator<<(std::ostream& os, const component_t& dt) {
+//   dt.print(os);
+//   return os;
+// }
 
 std::unordered_map<std::string, Color> COLORSMAP{
     {"red", red},          {"green", green},
@@ -40,6 +40,7 @@ void from_json(const json& j, wall_t& obj) {
   obj.l2 = l2;
   obj.length = j.value("length", (l1 - l2).norm());
   obj.width = j.value("width", 2);
+  obj.can_pass = false;
 }
 
 void from_json(const json& j, cross_t& obj) {
@@ -57,6 +58,7 @@ void from_json(const json& j, cross_t& obj) {
   obj.l2 = point2(l2);
   obj.length = j.value("length", (l1 - l2).norm());
   obj.width = j.value("width", obj.color == red ? 5 : 2);
+  obj.can_pass = true;
 }
 
 void from_json(const json& j, arc_t& obj) {
@@ -68,7 +70,7 @@ void from_json(const json& j, arc_t& obj) {
   j.at("end_radian").get_to(tmp);
   obj.end_radian = tmp * M_PI / 180;
   obj.color = COLORSMAP[j.at("color")];
-  j.at("passable").get_to(obj.passable);
+  j.at("passable").get_to(obj.can_pass);
   j.at("collision_mode").get_to(obj.collision_mode);
   auto l1 = obj.init_pos[0];
   auto l2 = obj.init_pos[1];

@@ -152,7 +152,7 @@ void OlympicsBase::generate_map(const map_t& map) {
     auto r = item.r;
     this->agent_init_pos.push_back(item.position_init);
     this->agent_num += 1;
-    if (!item.is_ball()) {
+    if (!item.is_ball) {
       auto visibility = item.visibility;
       auto boundary = get_obs_boundaray(position, r, visibility);
       this->obs_boundary_init.push_back(boundary);
@@ -219,7 +219,7 @@ void arc_t::update_cur_pos(double agent_x, double agent_y) {
 obslist_t OlympicsBase::get_obs() {
   for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
     auto agent = agent_list[agent_idx];
-    if (agent.is_ball()) continue;
+    if (agent.is_ball) continue;
     auto theta_copy = agent_theta[agent_idx];
     auto agent_pos = this->agent_pos;
     auto agent_x = agent_pos[agent_idx][0];
@@ -256,7 +256,7 @@ obslist_t OlympicsBase::get_obs() {
     auto c_x_ = tempp[0];
     auto c_y_ = tempp[1];
     auto vec_oc_ = point2(c_x_, c_y_);
-    std::vector<component_t*> map_objects;
+    std::vector<object_t*> map_objects;
     map_t map_deduced;
     double distance;
     for (auto c : map.objects) {
@@ -309,14 +309,527 @@ obslist_t OlympicsBase::get_obs() {
   return obs_list;
 }
 
-void OlympicsBase::stepPhysics(std::vector<double> actions_list, int step = 0,
-                               bool take_action = true){
+std::vector<point2> OlympicsBase::actions_to_accel(
+    std::vector<std::vector<double>> actions_list) {
+  std::vector<point2> a_container(agent_num);
+  for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    auto action = actions_list[agent_idx];
+    auto mass = agent_list[agent_idx].mass;
+    assert(action_f[0] <= action[0] && action[0] <= action_f[1]);
+    auto force = action[0] / mass;
 
+    assert(action_theta[0] <= action[1] && action[1] <= action_theta[1]);
+    auto theta = action[1];
+
+    auto theta_old = agent_theta[agent_idx];
+    auto theta_new = theta_old + theta;
+    agent_theta[agent_idx] = theta_new;
+
+    auto accel_x = force * cos(theta_new / 180 * M_PI);
+    auto accel_y = force * sin(theta_new / 180 * M_PI);
+    a_container[agent_idx] = point2(accel_x, accel_y);
+  }
+}
+
+std::tuple<double, Target> wall_t::collision_time(point2 pos, point2 v,
+                                                  float radius, int agent_idx,
+                                                  int object_idx,
+                                                  ignore_t ignore) {
+  auto closest_p = closest_point(l1, l2, pos);
+  point2 n(pos[0] - closest_p[0], pos[1] - closest_p[1]);
+  auto nn_sqrt = n.norm();
+  auto cl1 = point2(l1[0] - pos[0], l1[1] - pos[1]);
+  auto cl1_n = cl1[0] * n[0] + cl1[1] * n[1];
+  auto v_n = (n[0] * v[0] + n[1] * v[1]);
+  if (v_n == 0) return {-1, None};
+  auto r_ = cl1_n < 0 ? radius : -radius;
+  auto wall_col_t =
+      cl1_n / v_n +
+      r_ * nn_sqrt / v_n;  // the collision time with the line segment
+
+  // check the collision point is on the line segment
+  auto new_pos = point2(pos[0] + wall_col_t * v[0], pos[1] + wall_col_t * v[1]);
+  auto collision_point = closest_point(l1, l2, new_pos);
+  auto on_the_line = check_on_line(collision_point);
+  Target endpoint_target;
+  double t_endpoint;
+  if (on_the_line)
+    return {wall_col_t, wall};
+  else
+    wall_col_t = -1;
+
+  // #now check the endpoint collision
+  auto tl1 = _endpoint_collision_time(pos, v, radius, l1);
+  auto tl2 = _endpoint_collision_time(pos, v, radius, l2);
+
+  if (tl1 >= 0 && tl2 >= 0) {
+    t_endpoint = std::min(tl1, tl2);
+    endpoint_target = tl1 < tl2 ? Target::l1 : Target::l2;
+  } else {
+    if (tl1 < 0 and tl2 < 0) {
+      t_endpoint = -1;
+      endpoint_target = None;
+    } else {
+      t_endpoint = tl1 >= 0 ? tl1 : tl2;
+      endpoint_target = tl1 >= 0 ? Target::l1 : Target::l2;
+    }
+  }
+
+  return {t_endpoint, endpoint_target};
+};
+
+std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
+                                                 float radius, int agent_idx,
+                                                 int object_idx,
+                                                 ignore_t ignore) {
+  if (circle) {
+    bool inflag = ignore.contains({agent_idx, object_idx, 0});
+    // #else, compute the collision time and the target
+    auto cx = center[0], cy = center[1];
+    auto x = pos[0], y = pos[1];
+    auto vx = v[0], vy = v[1];
+    auto l = vx * x - cx * vx + y * vy - cy * vy;
+    auto k = vx * vx + vy * vy;
+    auto h = (x * x + y * y) + (cx * cx + cy * cy) - 2 * (cx * x + y * cy);
+    auto RHS = (l / k) * (l / k) - h / k + ((R - radius) * (R - radius)) / k;
+    double t1;
+    if (RHS < 0)
+      t1 = -1;
+    else {
+      auto sqrt = std::sqrt(RHS);
+      ;
+      auto t_inner1 = -(l / k) + sqrt;
+      auto t_inner2 = -(l / k) - sqrt;
+      if (abs(t_inner1) <= 1e-10) t_inner1 = 0;
+      if (abs(t_inner2) <= 1e-10) t_inner2 = 0;
+      auto t1_check = this->check_radian(pos, v, t_inner1);
+      auto t2_check = this->check_radian(pos, v, t_inner2);
+      if (t1_check && t2_check)
+        if (abs(t_inner1) < 1e-10 && inflag)
+          t1 = t_inner2;
+        else if (abs(t_inner2) < 1e-10 && inflag)
+          t1 = t_inner1;
+        else
+
+            if (t_inner1 <= 0 && t_inner2 <= 0)
+          t1 = std::max(t_inner1, t_inner2);
+        else if (t_inner1 >= 0 && t_inner2 >= 0)
+          t1 = std::min(t_inner1, t_inner2);
+        else if (t_inner1 >= 0 && t_inner2 <= 0)
+          t1 = t_inner1;
+        else
+          exit(233);
+      //                            #print('CHECK t1 = {}, t2 =
+      //                            {}'.format(t_inner1, t_inner2))
+
+      else if (t1_check && not t2_check)
+        t1 = t_inner1;
+
+      else if (not t1_check && t2_check)
+        t1 = t_inner2;
+
+      else  //    #when both collision is outside the arc angle range
+        t1 = -1;
+    }
+    auto RHS2 = (l / k) * (l / k) - h / k + (R + radius) * (R + radius) / k;
+    double t2;
+    if (RHS2 < 0)
+      // print('outter collision has no solution')
+      t2 = -1;
+    else {
+      auto sqrt2 = std::sqrt(RHS2);
+      auto t_outter1 = -(l / k) + sqrt2;
+      auto t_outter2 = -(l / k) - sqrt2;
+
+      if (abs(t_outter1) <= 1e-10) t_outter1 = 0;
+      if (abs(t_outter2) <= 1e-10) t_outter2 = 0;
+
+      // check radian, for both t,
+      auto t1_check = this->check_radian(pos, v, t_outter1);
+      auto t2_check = this->check_radian(pos, v, t_outter2);
+
+      if (t1_check && t2_check) {
+        if (abs(t_outter1) < 1e-10 && inflag)
+          t2 = t_outter2;
+        else if (abs(t_outter2) < 1e-10 && inflag)
+          t2 = t_outter1;
+        else {
+          if (t_outter1 <= 0 && t_outter2 <= 0)  // leaving the collision
+                                                 // point
+            t2 = std::max(t_outter1, t_outter2);
+          else if (t_outter1 >= 0 &&
+                   t_outter2 >= 0)  // approaching the collision point
+            t2 = std::min(t_outter1, t_outter2);
+          else if (t_outter1 >= 0 && t_outter2 <= 0)  // inside the circle
+            t2 = t_outter1;
+          else
+            exit(233);
+        }  // raise NotImplementedError
+      } else if (t1_check && not t2_check)
+        t2 = t_outter1;
+
+      else if (not t1_check && t2_check)
+        t2 = t_outter2;
+
+      else
+        t2 = -1;
+    }
+    double col_t;
+    Target col_target;
+    if (t1 >= 0 and t2 >= 0) {
+      if (t1 > t2) {
+        col_target = outter;
+        col_t = t2;
+      } else if (t1 < t2) {
+        col_target = inner;
+        col_t = t1;
+      } else
+        exit(233);
+    }  // #print('t1 = {}, t2 = {}'.format(t1, t2))
+    else if (t1 < 0 and t2 >= 0) {
+      col_target = outter;
+      col_t = t2;
+    } else if (t1 >= 0 and t2 < 0) {
+      col_target = inner;
+      col_t = t1;
+    } else {
+      col_target = None;
+      col_t = -1;
+    }
+    return {col_t, col_target == None ? None : arc};
+
+  } else {
+    exit(2233);
+    // not implement
+  }
+}
+
+std::tuple<float, Target, int, int>
+OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
+                                             std::vector<point2> v_container,
+                                             float remaining_t,
+                                             ignore_t ignore) {
+  Target col_target;
+  int col_target_idx;
+  int current_idx;
+  auto current_min_t = remaining_t;
+  for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    auto pos = pos_container[agent_idx];
+    auto v = v_container[agent_idx];
+    auto r = agent_list[agent_idx].r;
+    if (v[0] == v[1] == 0) continue;
+    for (size_t object_idx = 0; object_idx < map.objects.size(); object_idx++) {
+      auto object = map.objects[object_idx];
+      if (object->can_pass) continue;
+      auto [temp_t, temp_col_target] =
+          object->collision_time(pos, v, r, agent_idx, object_idx, ignore);
+      if (abs(temp_t) < 1e-10) temp_t = 0;
+      {
+        bool check = true;
+        if (0 <= temp_t < current_min_t)
+          if (temp_col_target == wall || temp_col_target == arc)
+            check = ignore.contains({agent_idx, object_idx, temp_t});
+
+          else if (temp_col_target == l1 || temp_col_target == l2)
+            check = ignore.contains({agent_idx, object_idx, temp_t});
+          else
+            // raise NotImplementedError('bounceable_wall_collision_time error')
+            exit(233);
+
+        if (check) {
+          current_min_t = temp_t;
+          col_target = temp_col_target;
+          col_target_idx = object_idx;
+          current_idx = agent_idx;
+        }
+      }
+      return {current_min_t, col_target, col_target_idx, current_idx};
+    }
+  }
+};
+
+double OlympicsBase::CCD_circle_collision(point2 old_pos1, point2 old_pos2,
+                                          point2 old_v1, point2 old_v2,
+                                          double r1, double r2, double m1,
+                                          double m2) {
+  auto relative_pos =
+      point2(old_pos1[0] - old_pos2[0], old_pos1[1] - old_pos2[1]);
+  auto relative_v = point2(old_v1[0] - old_v2[0], old_v1[1] - old_v2[1]);
+  if (relative_v.norm() == 0) return -1;
+
+  auto pos_v =
+      relative_pos[0] * relative_v[0] + relative_pos[1] * relative_v[1];
+  auto K =
+      pos_v / (relative_v[0] * relative_v[0] + relative_v[1] * relative_v[1]);
+  auto l = (relative_pos[0] * relative_pos[0] +
+            relative_pos[1] * relative_pos[1] - (r1 + r2) * (r1 + r2)) /
+           (relative_v[0] * relative_v[0] + relative_v[1] * relative_v[1]);
+
+  auto sqrt = (K * K - l);
+  if (sqrt < 0)
+    // #print('CCD circle no solution')
+    return -1;
+
+  sqrt = std::sqrt(sqrt);
+  auto t1 = -K - sqrt;
+  auto t2 = -K + sqrt;
+  auto t = std::min(t1, t2);
+  return t;
+};
+
+std::tuple<point2, point2> OlympicsBase::_circle_collision_response(
+    point2 coord1, point2 coord2, point2 v1, point2 v2, double m1, double m2) {
+  auto n_x = coord1[0] - coord2[0];
+  auto n_y = coord1[1] - coord2[1];
+
+  auto vdiff_x = (v1[0] - v2[0]);
+  auto vdiff_y = (v1[1] - v2[1]);
+
+  auto n_vdiff = n_x * vdiff_x + n_y * vdiff_y;
+  auto nn = n_x * n_x + n_y * n_y;
+  auto b = n_vdiff / nn;
+
+  //#object 1
+  auto u1_x = v1[0] - 2 * (m2 / (m1 + m2)) * b * n_x;
+  auto u1_y = v1[1] - 2 * (m2 / (m1 + m2)) * b * n_y;
+
+  //#object 2
+  auto u2_x = v2[0] + 2 * (m1 / (m1 + m2)) * b * n_x;
+  auto u2_y = v2[1] + 2 * (m1 / (m1 + m2)) * b * n_y;
+
+  return {{u1_x * circle_restitution, u1_y * circle_restitution},
+          {u2_x * circle_restitution, u2_y * circle_restitution}};
+}
+
+std::tuple<point2, point2, point2, point2> OlympicsBase::CCD_circle_collision_f(
+    point2 old_pos1, point2 old_pos2, point2 old_v1, point2 old_v2, double r1,
+    double r2, double m1, double m2) {
+  auto relative_pos =
+      point2(old_pos1[0] - old_pos2[0], old_pos1[1] - old_pos2[1]);
+  auto relative_v = point2(old_v1[0] - old_v2[0], old_v1[1] - old_v2[1]);
+  if (relative_v.norm() == 0) exit(233);
+
+  auto pos_v =
+      relative_pos[0] * relative_v[0] + relative_pos[1] * relative_v[1];
+  auto K =
+      pos_v / (relative_v[0] * relative_v[0] + relative_v[1] * relative_v[1]);
+  auto l = (relative_pos[0] * relative_pos[0] +
+            relative_pos[1] * relative_pos[1] - (r1 + r2) * (r1 + r2)) /
+           (relative_v[0] * relative_v[0] + relative_v[1] * relative_v[1]);
+
+  auto sqrt = (K * K - l);
+
+  sqrt = std::sqrt(sqrt);
+  auto t1 = -K - sqrt;
+  auto t2 = -K + sqrt;
+  auto t = std::min(t1, t2);
+
+  auto x1 = old_pos1[0], y1 = old_pos1[1];
+  auto x2 = old_pos2[0], y2 = old_pos2[1];
+  auto x1_col = x1 + old_v1[0] * t;
+  auto y1_col = y1 + old_v1[1] * t;
+  auto x2_col = x2 + old_v2[0] * t;
+  auto y2_col = y2 + old_v2[1] * t;
+  auto pos_col1 = point2(x1_col, y1_col);
+  auto pos_col2 = point2(x2_col, y2_col);
+
+  // #handle collision
+  auto [v1_col, v2_col] = _circle_collision_response(
+      pos_col1, pos_col2, old_v1, old_v2, m1,
+      m2);  //   #the position and v at the collision time
+
+  return {pos_col1, v1_col, pos_col2, v2_col};
+};
+
+std::tuple<float, Target, int, int> OlympicsBase::circle_collision_time(
+    std::vector<point2> pos_container, std::vector<point2> v_container,
+    float remaining_t, ignore_t ignore) {
+  int current_idx;
+  int target_idx;
+  auto current_min_t = remaining_t;
+  Target col_target;
+
+  for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    auto pos1 = pos_container[agent_idx];
+    auto v1 = v_container[agent_idx];
+    auto m1 = agent_list[agent_idx].mass;
+    auto r1 = agent_list[agent_idx].r;
+
+    for (size_t rest_idx = agent_idx + 1; rest_idx < agent_num; rest_idx++) {
+      auto pos2 = pos_container[rest_idx];
+      auto v2 = v_container[rest_idx];
+      auto m2 = agent_list[rest_idx].mass;
+      auto r2 = agent_list[rest_idx].r;
+
+      // compute ccd collision time
+      double collision_t =
+          CCD_circle_collision(pos1, pos2, v1, v2, r1, r2, m1, m2);
+      // # print('agent {}, time on circle {} is  = {}, current_min_t =
+      // {}'.format(agent_idx, # rest_idx, # collision_t, # remaining_t)) #
+      // print('ignore list = ', ignore)
+
+      if (0 <= collision_t &&
+          collision_t < current_min_t)  //# and [agent_idx, rest_idx,
+                                        // collision_t] not in ignore:
+        current_min_t = collision_t;
+      current_idx = agent_idx;
+      target_idx = rest_idx;
+      col_target = circle;
+    }
+  }
+
+  return {current_min_t, col_target, current_idx, target_idx};
+}
+
+void OlympicsBase::handle_wall(int target_wall_idx, Target col_target,
+                               int current_agent_idx, float col_t,
+                               std::vector<point2>& pos_container,
+                               std::vector<point2>& v_container,
+                               double& remaining_t,
+                               ignore_t& ignore_wall_list) {
+  auto [col_pos, col_v] = wall_response(
+      target_wall_idx, col_target = col_target,
+      pos_container[current_agent_idx], v_container[current_agent_idx],
+      agent_list[current_agent_idx].r, col_t);
+
+  pos_container[current_agent_idx] = col_pos;
+  v_container[current_agent_idx] = col_v;
+  update_other(pos_container, v_container, col_t, {current_agent_idx});
+  remaining_t -= col_t;
+  if (remaining_t <= 1e-14) {
+    if (col_target == wall) {
+      _add_wall_ignore(wall, current_agent_idx, target_wall_idx,
+                       ignore_wall_list, true);
+      _add_wall_ignore(l1, current_agent_idx, target_wall_idx, ignore_wall_list,
+                       true);
+      _add_wall_ignore(l2, current_agent_idx, target_wall_idx, ignore_wall_list,
+                       true);
+    } else if (col_target == l2 || col_target == l1) {
+      _add_wall_ignore(col_target, current_agent_idx, target_wall_idx,
+                       ignore_wall_list, true);
+      auto wall_endpoint = map.objects[target_wall_idx]->getattr(col_target);
+      auto connected_wall = point2wall[wall_endpoint];
+      for (auto idx : connected_wall)
+        _add_wall_ignore(wall, current_agent_idx, idx, ignore_wall_list, true);
+    } else
+      _add_wall_ignore(col_target, current_agent_idx, target_wall_idx,
+                       ignore_wall_list,
+                       true);  //  HERE MODIFYED #collision of arc
+  }
+
+  if (col_target == wall) {
+    _add_wall_ignore(wall, current_agent_idx, target_wall_idx,
+                     ignore_wall_list);
+    _add_wall_ignore(l1, current_agent_idx, target_wall_idx, ignore_wall_list);
+    _add_wall_ignore(l2, current_agent_idx, target_wall_idx, ignore_wall_list);
+  } else if (col_target == l2 or col_target == l1) {
+    _add_wall_ignore(col_target, current_agent_idx, target_wall_idx,
+                     ignore_wall_list);
+    auto wall_endpoint = map.objects[target_wall_idx]->getattr(col_target);
+    auto connected_wall = point2wall[wall_endpoint];
+    for (auto idx : connected_wall)
+      _add_wall_ignore(wall, current_agent_idx, idx, ignore_wall_list);
+  } else
+    _add_wall_ignore(col_target, current_agent_idx, target_wall_idx,
+                     ignore_wall_list);
+}
+
+void OlympicsBase::handle_circle(int target_circle_idx, Target col_target,
+                                 int current_circle_idx, float col_t,
+                                 std::vector<point2>& pos_container,
+                                 std::vector<point2>& v_container,
+                                 double& remaining_t,
+                                 ignore_t& ignore_circle_list) {
+  auto [pos_col1, v1_col, pos_col2, v2_col] = CCD_circle_collision_f(
+      pos_container[current_circle_idx], pos_container[target_circle_idx],
+      v_container[current_circle_idx], v_container[target_circle_idx],
+      agent_list[current_circle_idx].r, agent_list[target_circle_idx].r,
+      agent_list[current_circle_idx].mass, agent_list[target_circle_idx].mass);
+
+  pos_container[current_circle_idx] = pos_col1;
+  pos_container[target_circle_idx] = pos_col2;
+  v_container[current_circle_idx] = v1_col;
+  v_container[target_circle_idx] = v2_col;
+
+  update_other(pos_container, v_container, col_t,
+               {current_circle_idx, target_circle_idx});
+  remaining_t -= col_t;
+  if (remaining_t <= 1e-14)
+    global_circle_ignore.insert({current_circle_idx, target_circle_idx,
+                                 0.0});  // # adding instead of defining
+  ignore_circle_list.insert({current_circle_idx, target_circle_idx, 0.0});
+}
+
+void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
+                               int step = 0, bool take_action = true) {
+  assert(actions_list.size() == agent_num);
+  // print("The number of action needs to match with the number of agents!")
+  // actions_list = actions_list
+  auto temp_pos_container = agent_pos;
+  auto temp_v_container = agent_v;
+  // WARNING:ABOVE TWO MAYBE NEED CUTOFF by agent_num
+  auto temp_a_container = actions_to_accel(actions_list);
+  agent_accel = temp_a_container;
+
+  auto remaining_t = tau;
+  auto ignore_wall = global_wall_ignore;
+  auto ignore_circle = global_circle_ignore;
+  global_wall_ignore.clear();
+  global_circle_ignore.clear();
+  while (1) {
+    auto [earliest_wall_col_t, collision_wall_target, target_wall_idx,
+          current_agent_idx] =
+        bounceable_wall_collision_time(temp_pos_container, temp_v_container,
+                                       remaining_t, ignore_wall);
+
+    auto [earliest_circle_col_t, collision_circle_target, current_circle_idx,
+          target_circle_idx] =
+        circle_collision_time(temp_pos_container, temp_v_container, remaining_t,
+                              ignore_circle);
+
+    if (collision_wall_target == None && collision_circle_target == None)
+      // if self.print_log:
+      //     print('HIT THE WALL!')
+      handle_wall(target_wall_idx, collision_wall_target, current_agent_idx,
+                  earliest_wall_col_t, temp_pos_container, temp_v_container,
+                  remaining_t, ignore_wall);
+    else if (collision_wall_target == None && collision_circle_target == circle)
+      //     print('HIT THE BALL!')
+      handle_circle(target_circle_idx, collision_circle_target,
+                    current_circle_idx, earliest_circle_col_t,
+                    temp_pos_container, temp_v_container, remaining_t,
+                    ignore_circle);
+    else if (collision_wall_target != None &&
+             collision_circle_target == circle) {
+      // print('HIT BOTH!')
+      if (earliest_wall_col_t <
+          earliest_circle_col_t) {  // print('PROCESS WALL FIRST!')
+        handle_wall(target_wall_idx, collision_wall_target, current_agent_idx,
+                    earliest_wall_col_t, temp_pos_container, temp_v_container,
+                    remaining_t, ignore_wall);
+      } else if (earliest_wall_col_t >= earliest_circle_col_t) {
+        // print('PROCESS CIRCLE FIRST!')
+        handle_circle(target_circle_idx, collision_circle_target,
+                      current_circle_idx, earliest_circle_col_t,
+                      temp_pos_container, temp_v_container, remaining_t,
+                      ignore_circle);
+      }
+    } else {
+      // print('NO COLLISION!')
+      update_all(temp_pos_container, temp_v_container, remaining_t,
+                 temp_a_container);
+      break;  // #when no collision occurs, break the collision detection loop
+    }
+    agent_pos = temp_pos_container;
+    agent_v = temp_v_container;
+  }
 };
 
 class curling : OlympicsBase {
  private:
+  int final_winner;
   float tau = 0.1;
+  int round_countdown;
   float wall_restitution = 1;
   float circle_restitution = 1;
   bool print_log = false;
@@ -333,7 +846,7 @@ class curling : OlympicsBase {
   float top_area_gamma, down_area_gamma, gamma;
   int agent_num, temp_winner, round_step, game_round, current_team, num_purple,
       num_green, purple_game_point, green_game_point;
-  void reset(bool reset_game = false) {
+  obslist_t reset(bool reset_game = false) {
     bool release = false;
     top_area_gamma = 0.98;
     down_area_gamma = 0.95;
@@ -384,17 +897,268 @@ class curling : OlympicsBase {
     // view_terminal = false
 
     auto obs = get_obs();
-
+    return obs;
     // if current_team == 0:
     //     return [obs, np.zeros_like(obs)-1]
     // else:
     //     return [np.zeros_like(obs)-1, obs]
   }
+  void cross_detect() {
+    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+      auto agent = agent_list[agent_idx];
+      if (agent.is_ball) continue;
+      for (size_t object_idx = 0; agent_idx < map.objects.size(); agent_idx++) {
+        auto object = map.objects[object_idx];
+        if (!object->can_pass)
+          continue;
+        else {
+          if (object->color == red &&
+              object->check_cross(agent_pos[agent_idx], agent.r)) {
+            agent.alive = false;
+            // #agent.color = 'red'
+            gamma = down_area_gamma;  //   #this will change the gamma for the
+                                      //   whole env, so need to change if
+                                      //   dealing with multi-agent
+            release = true;
+            round_countdown = round_max_step - round_step;
+          }
+        }
+      }
+    }
+  }
+  bool is_terminal() {
+    if (num_green + num_purple == max_n * 2) {
+      if ((!release) && round_step > round_max_step) return true;
+
+      if (release) {
+        bool L = true;
+        for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+          if ((agent_v[agent_idx][0] * agent_v[agent_idx][0] +
+               agent_v[agent_idx][1] * agent_v[agent_idx][1]) < 1e-1)
+            L &= true;
+          else
+            L &= false;
+        }
+
+        return L;
+      }
+    } else
+      return false;
+  }
+  std::tuple<bool, int> _round_terminal() {
+    if ((round_step > round_max_step) &&
+        (!release))  //      #after maximum round step the agent has not
+                     //      released yet
+      return {true, -1};
+
+    // #agent_idx = -1
+    bool L = true;
+    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+      if ((!agent_list[agent_idx].alive) &&
+          ((agent_v[agent_idx][0] * agent_v[agent_idx][0] +
+            agent_v[agent_idx][1] * agent_v[agent_idx][1]) < 1e-1))
+        L &= true;
+      else
+        L &= false;
+    }
+
+    return {L, 0};
+  }
+
+  int current_winner() {
+    auto center = point2(300, 500);
+    auto min_dist = 1e4;
+    auto win_team = -1;
+    for (size_t i = 0; i < agent_list.size(); i++) {
+      auto agent = agent_list[i];
+      auto pos = agent_pos[i];
+      auto distance = (pos - center).norm();
+      if (distance < min_dist) {
+        win_team = agent.color == purple ? 0 : 1;
+        min_dist = distance;
+      }
+    }
+
+    return win_team;
+  }
+
+  obslist_t _reset_round() {
+    current_team = 1 - current_team;
+    // #convert last agent to ball
+    if (agent_list.size() != 0) {
+      agent_list[-1].to_ball();
+      agent_list[-1].alive = false;
+    }
+    Color new_agent_color;
+    if (current_team == 0) {
+      new_agent_color = purple;
+      num_purple += 1;
+    } else if (current_team == 1) {
+      new_agent_color = green;
+      num_green += 1;
+    } else {
+      exit(233);
+    }
+    agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
+    agent_init_pos[-1] = start_pos;
+    auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
+    obs_boundary_init.push_back(new_boundary);
+    agent_num += 1;
+    agent_pos.push_back(agent_init_pos[-1]);
+    agent_v.push_back({0, 0});
+    agent_accel.push_back({0, 0});
+    auto init_obs = start_init_obs;
+    agent_theta.push_back(init_obs);
+    agent_record.push_back({agent_init_pos[-1]});
+    release = false;
+    gamma = top_area_gamma;
+    round_step = 0;
+    return get_obs();
+  }
+  void cal_game_point() {
+    point2 center(300, 500);
+    std::vector<double> purple_dis;
+    std::vector<double> green_dis;
+    auto min_dist = 1e4;
+    auto closest_team = -1;
+    for (size_t i = 0; i < agent_list.size(); i++) {
+      auto agent = agent_list[i];
+      auto pos = agent_pos[i];
+      auto distance = (pos - center).norm();
+      if (agent.color == purple)
+        purple_dis.push_back(distance);
+      else if (agent.color == green)
+        green_dis.push_back(distance);
+      else
+        exit(233);
+      // raise NotImplementedError
+      if (distance < min_dist) {
+        closest_team = agent.color == purple ? 0 : 1;
+        min_dist = distance;
+      }
+    }
+    std::sort(purple_dis.begin(), purple_dis.end());
+    std::sort(green_dis.begin(), green_dis.end());
+    if (closest_team == 0) {
+      if (green_dis.size() == 0)
+        purple_game_point += purple_dis.size();
+      else {
+        for (auto t : purple_dis) {
+          purple_game_point += t < green_dis[0];
+        }
+      }
+    } else if (closest_team == 1)
+      if (purple_dis.size() == 0)
+        purple_game_point += green_dis.size();
+      else {
+        for (auto t : purple_dis) {
+          purple_game_point += t < purple_dis[0];
+        }
+      }
+  }
+  void _clear_agent() {
+    if ((round_step > round_max_step) && !release) {
+      agent_list.pop_back();
+      agent_pos.pop_back();
+      agent_v.pop_back();
+      agent_theta.pop_back();
+      agent_accel.pop_back();
+      agent_num -= 1;
+    }
+  }
 
  public:
   curling();
-  obslist_t step(std::vector<std::vector<double>> actions_list) {
-    auto action = actions_list[current_team];
+  std::tuple<obslist_t, reward_t, bool, std::string> step(
+      std::deque<std::vector<double>> actions_list) {
+    auto action = std::vector<std::vector<double>>(agent_list.size(),
+                                                   std::vector<double>(2));
+    if (!release) {
+      for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
+        if (!agent_list[agent_idx].is_ball) {
+          action[agent_idx] = actions_list[0];
+          actions_list.pop_front();
+        }
+      }
+    }
     stepPhysics(action, step_cnt, release);
+    if (!release) cross_detect();
+    step_cnt += 1;
+    round_step += 1;
+    auto obs_next = get_obs();
+    auto done = is_terminal();
+    reward_t step_reward;
+    if (!done) {
+      auto [round_end, end_info] = _round_terminal();
+
+      if (round_end) {
+        if (end_info != 0) {  // #clean the last agent
+          agent_list.pop_back();
+          agent_pos.pop_back();
+          agent_v.pop_back();
+          agent_theta.pop_back();
+          agent_accel.pop_back();
+          agent_num -= 1;
+        }
+        temp_winner = current_winner();
+        if (temp_winner == -1)
+          step_reward = {0., 0.};
+        else if (temp_winner == 0)
+          step_reward = {1, 0.};
+        else if (temp_winner == 1)
+          step_reward = {0., 1};
+        else
+          exit(233);
+        // raise NotImplementedError
+        obs_next = _reset_round();
+      } else {
+        step_reward = {0., 0.};
+      }
+    } else {
+      if (game_round == 1) {
+        _clear_agent();
+        cal_game_point();
+        if (purple_game_point > green_game_point) {
+          final_winner = 0;
+          step_reward = {100., 0};
+        } else if (green_game_point > purple_game_point) {
+          final_winner = 1;
+          step_reward = {0., 100.};
+        } else {
+          final_winner = -1;
+          step_reward = {0., 0.};
+        }
+        temp_winner = final_winner;
+        //                # step_reward = [100., 0] if self.final_winner == 0
+        //                else [0., 100]
+        // view_terminal = True;
+      } else if (game_round == 0) {
+        _clear_agent();
+        auto game1_winner = current_winner();
+        auto step_reward =
+            game1_winner == 0 ? std::tuple{10., 0.} : std::tuple{0., 10.};
+        cal_game_point();
+        game_round += 1;
+        auto next_obs = reset(true);
+        return {next_obs, step_reward, false, "game1 ends, switch position"};
+      } else {
+        exit(233);
+      }
+    }
+    // if (current_team == 0)
+    //     // obs_next = [obs_next, np.zeros_like(obs_next)-1]
+    // else
+    //     // obs_next = [np.zeros_like(obs_next)-1, obs_next]
+
+    if (release) {
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dis(-1.0, 1.0);
+      auto h_gamma = down_area_gamma + dis(gen) * 0.001;
+      gamma = h_gamma;
+    }
+    // #return self.agent_pos, self.agent_v, self.agent_accel, self.agent_theta,
+    // obs_next, step_reward, done
+    return {obs_next, step_reward, done, ""};
   }
 };
