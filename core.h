@@ -63,11 +63,10 @@ class OlympicsBase {
 
   std::vector<point2> get_obs_boundaray(point2 init_position, double r,
                                         double visibility);
-  std::tuple<float, Target, int, int> bounceable_wall_collision_time(
-      std::vector<point2>, std::vector<point2>, float, ignore_t);
-  std::tuple<float, Target, int, int> circle_collision_time(std::vector<point2>,
-                                                            std::vector<point2>,
-                                                            float, ignore_t);
+  std::tuple<double, Target, int, int> bounceable_wall_collision_time(
+      std::vector<point2>, std::vector<point2>, double, ignore_t);
+  std::tuple<double, Target, int, int> circle_collision_time(
+      std::vector<point2>, std::vector<point2>, double, ignore_t);
 
   void generate_map(const map_t& map);
   void merge_map();
@@ -87,12 +86,12 @@ class OlympicsBase {
                                                         point2 v1, point2 v2,
                                                         double m1, double m2);
   void handle_wall(int target_wall_idx, Target col_target,
-                   int current_agent_idx, float col_t,
+                   int current_agent_idx, double col_t,
                    std::vector<point2>& pos_container,
                    std::vector<point2>& v_container, double& remaining_t,
                    ignore_t& ignore_wall_list);
   void handle_circle(int target_circle_idx, Target col_target,
-                     int current_circle_idx, float col_t,
+                     int current_circle_idx, double col_t,
                      std::vector<point2>& pos_container,
                      std::vector<point2>& v_container, double& remaining_t,
                      ignore_t& ignore_circle_list);
@@ -181,30 +180,30 @@ class OlympicsBase {
 
 class curling : OlympicsBase {
  private:
+  bool release = false;
   int final_winner;
-  float tau = 0.1;
   int round_countdown;
-  float wall_restitution = 1;
-  float circle_restitution = 1;
+  double wall_restitution = 1;
+  double circle_restitution = 1;
   bool print_log = false;
   bool draw_obs = true;
   bool show_traj = false;
-  bool release;
   point2 start_pos{300, 150};
-  float start_init_obs = 90;
+  double start_init_obs = 90;
   int max_n = 4;
   int round_max_step = 100;
   map_t map_copy;
-  float vis = 300;
-  float vis_clear = 10;
-  float top_area_gamma, down_area_gamma, gamma;
+  double vis = 300;
+  double vis_clear = 10;
+  double top_area_gamma, down_area_gamma;
   int temp_winner, round_step, game_round, current_team, num_purple, num_green,
       purple_game_point, green_game_point;
   void cross_detect() {
     for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       auto agent = agent_list[agent_idx];
       if (agent.is_ball) continue;
-      for (size_t object_idx = 0; agent_idx < map.objects.size(); agent_idx++) {
+      for (size_t object_idx = 0; object_idx < map.objects.size();
+           object_idx++) {
         auto object = map.objects[object_idx];
         if (!object->can_pass)
           continue;
@@ -368,7 +367,6 @@ class curling : OlympicsBase {
  public:
   curling() = default;
   obslist_t reset(bool reset_game = false) {
-    bool release = false;
     top_area_gamma = 0.98;
     down_area_gamma = 0.95;
     gamma = top_area_gamma;

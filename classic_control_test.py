@@ -23,6 +23,7 @@ from absl.testing import absltest
 import testhelper.core
 import classic_control_envpool
 import testhelper.viewer
+import testhelper.curling
 import testhelper.helperfunction
 from testhelper.generator import create_scenario
 import matplotlib.pyplot as plt
@@ -152,15 +153,26 @@ import cv2
 
 class _OlympicsBaseTest(absltest.TestCase):
   def test_Build(self)->None:
-    import ptvsd
-    ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-    print('Now is a good time to attach your debugger: Run: Python: Attach')
-    ptvsd.wait_for_attach()
+    # import ptvsd
+    # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+    # print('Now is a good time to attach your debugger: Run: Python: Attach')
+    # ptvsd.wait_for_attach()
     a=classic_control_envpool.curling()
+    testa=testhelper.curling.curling(create_scenario("curling"))
     a.reset()
+    testa.reset()
     # print(my)
-    a.step([[200,0],[200,0]])   
+    for i in range(50):
+      print(f"step{i}")
+      my1=a.step([[200,0],[200,0]])[0][0]
+      my2=testa.step([[200,0],[200,0]])[0][0]
     # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+    # for i in range(50):
+    #   my=a.step([[200,0],[200,0]])[0][0]
+    # plt.imsave('/app/temp/test2.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+    # for i in range(50):
+    #   my=a.step([[200,0],[200,0]])[0][0]
+    # plt.imsave('/app/temp/test3.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
     # print(testhelper.core.OlympicsBase(create_scenario("curling")).obs_list)
     # self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
     # self.assertTrue(v.height==120)

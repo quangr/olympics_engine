@@ -5,6 +5,7 @@ import time
 import numpy as np
 import random
 import sys
+from absl import logging
 
 def point2line(l1, l2, point):
     """
@@ -755,7 +756,8 @@ class OlympicsBase(object):
 
         self.agent_pos = temp_pos_container
         self.agent_v = temp_v_container
-
+        print(f"agent_pos: {self.agent_pos[0][0]:.5e},{ self.agent_pos[0][1]}")
+        print(f"agent_v: {self.agent_v[0][0]:.5e},{ self.agent_v[0][1]}")
         #if self.is_render:
         #    debug('Step: ' + str(step), x = 30)
         #    pos = [(float('%.1f' % i[0]), float('%.1f' % i[1])) for i in self.agent_pos]

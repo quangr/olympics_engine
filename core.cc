@@ -333,7 +333,7 @@ std::vector<point2> OlympicsBase::actions_to_accel(
 }
 
 std::tuple<double, Target> wall_t::collision_time(point2 pos, point2 v,
-                                                  float radius, int agent_idx,
+                                                  double radius, int agent_idx,
                                                   int object_idx,
                                                   ignore_t ignore) {
   auto closest_p = closest_point(l1, l2, pos);
@@ -380,7 +380,7 @@ std::tuple<double, Target> wall_t::collision_time(point2 pos, point2 v,
 };
 
 std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
-                                                 float radius, int agent_idx,
+                                                 double radius, int agent_idx,
                                                  int object_idx,
                                                  ignore_t ignore) {
   if (circle) {
@@ -507,12 +507,12 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
   }
 }
 
-std::tuple<float, Target, int, int>
+std::tuple<double, Target, int, int>
 OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
                                              std::vector<point2> v_container,
-                                             float remaining_t,
+                                             double remaining_t,
                                              ignore_t ignore) {
-  Target col_target;
+  Target col_target = None;
   int col_target_idx;
   int current_idx;
   auto current_min_t = remaining_t;
@@ -529,9 +529,9 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
       // TODO QUESTIONHERE!
 
       if (abs(temp_t) < 1e-10) temp_t = 0;
-      {
-        bool check = true;
-        if (0 <= temp_t < current_min_t) {
+      if (0 <= temp_t && temp_t < current_min_t) {
+        bool check = false;
+        {
           if (temp_col_target == wall || temp_col_target == arc)
             check = ignore.contains({agent_idx, object_idx, temp_t});
 
@@ -646,9 +646,9 @@ std::tuple<point2, point2, point2, point2> OlympicsBase::CCD_circle_collision_f(
   return {pos_col1, v1_col, pos_col2, v2_col};
 };
 
-std::tuple<float, Target, int, int> OlympicsBase::circle_collision_time(
+std::tuple<double, Target, int, int> OlympicsBase::circle_collision_time(
     std::vector<point2> pos_container, std::vector<point2> v_container,
-    float remaining_t, ignore_t ignore) {
+    double remaining_t, ignore_t ignore) {
   int current_idx;
   int target_idx;
   auto current_min_t = remaining_t;
@@ -687,7 +687,7 @@ std::tuple<float, Target, int, int> OlympicsBase::circle_collision_time(
 }
 
 void OlympicsBase::handle_wall(int target_wall_idx, Target col_target,
-                               int current_agent_idx, float col_t,
+                               int current_agent_idx, double col_t,
                                std::vector<point2>& pos_container,
                                std::vector<point2>& v_container,
                                double& remaining_t,
@@ -740,7 +740,7 @@ void OlympicsBase::handle_wall(int target_wall_idx, Target col_target,
 }
 
 void OlympicsBase::handle_circle(int target_circle_idx, Target col_target,
-                                 int current_circle_idx, float col_t,
+                                 int current_circle_idx, double col_t,
                                  std::vector<point2>& pos_container,
                                  std::vector<point2>& v_container,
                                  double& remaining_t,
@@ -828,6 +828,10 @@ void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
   }
   agent_pos = temp_pos_container;
   agent_v = temp_v_container;
+  std::cout << "agent_pos: " << agent_pos[0][0] << ',' << agent_pos[0][1]
+            << std::endl;
+  std::cout << "agent_v: " << agent_v[0][0] << ',' << agent_v[0][1]
+            << std::endl;
 };
 
 std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
@@ -916,7 +920,9 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(-1.0, 1.0);
-    auto h_gamma = down_area_gamma + dis(gen) * 0.001;
+    // TODO should be random!
+    //  auto h_gamma = down_area_gamma + dis(gen) * 0.001;
+    auto h_gamma = down_area_gamma;
     gamma = h_gamma;
   }
   // #return self.agent_pos, self.agent_v, self.agent_accel, self.agent_theta,

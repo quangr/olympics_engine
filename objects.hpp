@@ -137,7 +137,8 @@ struct component_t : object_t {
       std::unordered_map<point2, std::vector<int>>& point2wall, int idx){};
   virtual component_t* copy() = 0;
   virtual std::tuple<double, Target> collision_time(point2 pos, point2 v,
-                                                    float radius, int agent_idx,
+                                                    double radius,
+                                                    int agent_idx,
                                                     int object_idx,
                                                     ignore_t ignore) = 0;
 
@@ -207,7 +208,7 @@ struct agent_t : object_t, InternalState {
 };
 
 struct wall_t : component_t {
-  double _endpoint_collision_time(point2 pos, point2 v, float radius,
+  double _endpoint_collision_time(point2 pos, point2 v, double radius,
                                   point2 endpoint) {
     auto deno = v[0] * v[0] + v[1] * v[1];
     auto k =
@@ -290,7 +291,7 @@ struct wall_t : component_t {
   double width, length;
   double A, B, C;
   std::vector<point2> init_pos;
-  std::tuple<double, Target> collision_time(point2 pos, point2 v, float radius,
+  std::tuple<double, Target> collision_time(point2 pos, point2 v, double radius,
                                             int agent_idx, int object_idx,
                                             ignore_t ignore) override;
   // virtual void print(std::ostream& os) const;
@@ -434,7 +435,7 @@ struct arc_t : component_t {
     }
   }
 
-  std::tuple<double, Target> collision_time(point2 pos, point2 v, float radius,
+  std::tuple<double, Target> collision_time(point2 pos, point2 v, double radius,
                                             int agent_idx, int object_idx,
                                             ignore_t ignore) override;
   virtual void update_cur_pos(double agent_x, double agent_y);

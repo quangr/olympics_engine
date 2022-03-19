@@ -26,7 +26,7 @@
 TEST(CurlingTEST, TESTSTEP) {
   curling c;
   c.reset();
-  // for (size_t i = 0; i < 1000; i++) {
-  c.step({{200, 0}, {200, 0}});
-  // }
+  for (size_t i = 0; i < 1000; i++) {
+    c.step({{200, 0}, {200, 0}});
+  }
 }
