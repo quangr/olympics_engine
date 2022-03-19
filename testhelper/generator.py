@@ -34,7 +34,7 @@ def create_scenario(scenario_name):
                     init_pos = value["initial_position"],
                     start_radian = value["start_radian"],
                     end_radian = value["end_radian"],
-                    passable = True if value["passable"] == "True" else False,
+                    passable = True if value["passable"] == True else False,
                     color = value['color'],
                     collision_mode=value['collision_mode'],
                     width = value['width'] if ("width" in value.keys()) else None

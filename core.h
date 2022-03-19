@@ -183,8 +183,6 @@ class curling : OlympicsBase {
   bool release = false;
   int final_winner;
   int round_countdown;
-  double wall_restitution = 1;
-  double circle_restitution = 1;
   bool print_log = false;
   bool draw_obs = true;
   bool show_traj = false;
@@ -365,7 +363,10 @@ class curling : OlympicsBase {
   }
 
  public:
-  curling() = default;
+  curling() {
+    wall_restitution = 1;
+    circle_restitution = 1;
+  };
   obslist_t reset(bool reset_game = false) {
     top_area_gamma = 0.98;
     down_area_gamma = 0.95;

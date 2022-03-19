@@ -70,7 +70,8 @@ void from_json(const json& j, arc_t& obj) {
   j.at("end_radian").get_to(tmp);
   obj.end_radian = tmp * M_PI / 180;
   obj.color = COLORSMAP[j.at("color")];
-  j.at("passable").get_to(obj.can_pass);
+  // j.at("passable").get_to(obj.can_pass);
+  obj.can_pass = false;
   j.at("collision_mode").get_to(obj.collision_mode);
   auto l1 = obj.init_pos[0];
   auto l2 = obj.init_pos[1];

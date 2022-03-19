@@ -24,9 +24,15 @@
 
 // TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase(); }
 TEST(CurlingTEST, TESTSTEP) {
-  curling c;
-  c.reset();
-  for (size_t i = 0; i < 1000; i++) {
-    c.step({{200, 0}, {200, 0}});
+  for (size_t iter = 0; iter < 5; iter++) {
+    curling c;
+    c.reset();
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> powerdis(-100.0, 200.0);
+    std::uniform_real_distribution<> angledis(-30.0, 30.0);
+    for (size_t i = 0; i < 150; i++) {
+      c.step({{powerdis(gen), angledis(gen)}, {powerdis(gen), angledis(gen)}});
+    }
   }
 }

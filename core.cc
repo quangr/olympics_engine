@@ -530,13 +530,13 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
 
       if (abs(temp_t) < 1e-10) temp_t = 0;
       if (0 <= temp_t && temp_t < current_min_t) {
-        bool check = false;
+        bool check = true;
         {
           if (temp_col_target == wall || temp_col_target == arc)
-            check = ignore.contains({agent_idx, object_idx, temp_t});
+            check = !ignore.contains({agent_idx, object_idx, temp_t});
 
           else if (temp_col_target == l1 || temp_col_target == l2)
-            check = ignore.contains({agent_idx, object_idx, temp_t});
+            check = !ignore.contains({agent_idx, object_idx, temp_t});
           else
             // raise NotImplementedError('bounceable_wall_collision_time error')
             abort();
@@ -548,9 +548,9 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
           current_idx = agent_idx;
         }
       }
-      return {current_min_t, col_target, col_target_idx, current_idx};
     }
   }
+  return {current_min_t, col_target, col_target_idx, current_idx};
 };
 
 double OlympicsBase::CCD_circle_collision(point2 old_pos1, point2 old_pos2,
@@ -652,7 +652,7 @@ std::tuple<double, Target, int, int> OlympicsBase::circle_collision_time(
   int current_idx;
   int target_idx;
   auto current_min_t = remaining_t;
-  Target col_target;
+  Target col_target = None;
 
   for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
     auto pos1 = pos_container[agent_idx];
@@ -676,10 +676,12 @@ std::tuple<double, Target, int, int> OlympicsBase::circle_collision_time(
       if (0 <= collision_t &&
           collision_t < current_min_t)  //# and [agent_idx, rest_idx,
                                         // collision_t] not in ignore:
+      {
         current_min_t = collision_t;
-      current_idx = agent_idx;
-      target_idx = rest_idx;
-      col_target = circle;
+        current_idx = agent_idx;
+        target_idx = rest_idx;
+        col_target = circle;
+      }
     }
   }
 
@@ -792,7 +794,7 @@ void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
         circle_collision_time(temp_pos_container, temp_v_container, remaining_t,
                               ignore_circle);
 
-    if (collision_wall_target == None && collision_circle_target == None)
+    if (collision_wall_target != None && collision_circle_target == None)
       // if self.print_log:
       //     print('HIT THE WALL!')
       handle_wall(target_wall_idx, collision_wall_target, current_agent_idx,

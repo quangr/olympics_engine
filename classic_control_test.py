@@ -157,16 +157,19 @@ class _OlympicsBaseTest(absltest.TestCase):
     # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
     # print('Now is a good time to attach your debugger: Run: Python: Attach')
     # ptvsd.wait_for_attach()
-    a=classic_control_envpool.curling()
-    testa=testhelper.curling.curling(create_scenario("curling"))
-    a.reset()
-    testa.reset()
-    # print(my)
-    for i in range(50):
-      print(f"step{i}")
-      my1=a.step([[200,0],[200,0]])[0][0]
-      my2=testa.step([[200,0],[200,0]])[0][0]
-    # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+    for iter_i in range(10):
+      a=classic_control_envpool.curling()
+      testa=testhelper.curling.curling(create_scenario("curling"))
+      a.reset()
+      testa.reset()
+      # print(my)
+      actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
+      for i in range(500):
+        print(f"step{i}")
+        my=a.step(actions[0])[0][0]
+        my1=testa.step(actions[0])[0][0]
+        self.assertTrue((my1==my).all())
+    plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
     # for i in range(50):
     #   my=a.step([[200,0],[200,0]])[0][0]
     # plt.imsave('/app/temp/test2.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
