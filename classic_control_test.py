@@ -139,16 +139,32 @@ import cv2
 
 
 
-class _OlympicsBaseTest(absltest.TestCase):
+# class _OlympicsBaseTest(absltest.TestCase):
 
-  def test_Build(self)->None:
-    a=classic_control_envpool.OlympicsBase()
-    my=np.array(a.get_obs()[0])
+#   def test_Build(self)->None:
+#     a=classic_control_envpool.OlympicsBase()
+#     my=np.array(a.get_obs()[0])
     
-    plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+#     plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+#     # print(testhelper.core.OlympicsBase(create_scenario("curling")).obs_list)
+#     self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
+#     # self.assertTrue(v.height==120)
+
+class _OlympicsBaseTest(absltest.TestCase):
+  def test_Build(self)->None:
+    import ptvsd
+    ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+    print('Now is a good time to attach your debugger: Run: Python: Attach')
+    ptvsd.wait_for_attach()
+    a=classic_control_envpool.curling()
+    a.reset()
+    # print(my)
+    a.step([[200,0],[200,0]])   
+    # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
     # print(testhelper.core.OlympicsBase(create_scenario("curling")).obs_list)
-    self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
+    # self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
     # self.assertTrue(v.height==120)
+
 
 if __name__ == "__main__":
   absltest.main()

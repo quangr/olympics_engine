@@ -147,8 +147,8 @@ void readjson(std::string filename, map_t& map) {
   }
   it = j_map["agent"].at("objects");
   for (auto& ell : it.items()) {
-    agent_t* temp = new agent_t();
-    ell.value().get_to(*temp);
-    map.agents.push_back(*temp);
+    agent_t temp;
+    ell.value().get_to(temp);
+    map.agents.push_back(temp);
   }
 }

@@ -22,4 +22,11 @@
 #include <tuple>
 #include <utility>
 
-TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase(); }
+// TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase(); }
+TEST(CurlingTEST, TESTSTEP) {
+  curling c;
+  c.reset();
+  // for (size_t i = 0; i < 1000; i++) {
+  c.step({{200, 0}, {200, 0}});
+  // }
+}

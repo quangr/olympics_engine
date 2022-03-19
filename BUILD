@@ -41,6 +41,7 @@ py_test(
         requirement("pygame"),
         requirement("matplotlib"),
         requirement("opencv-python-headless"),
+        requirement("ptvsd"),
     ],
     imports=[":classic_control_envpool.so"],
     data = [":classic_control_envpool.so"],

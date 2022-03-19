@@ -22,7 +22,8 @@ PYBIND11_MODULE(classic_control_envpool, m) {
   // m.def("readjson", &readjson);
   // py::class_<Viewer>(m, "Viewer")
   //     .def(py::init<int, int, int>(), "width"_a, "height"_a, "edge"_a);
-  py::class_<OlympicsBase>(m, "OlympicsBase")
+  py::class_<curling>(m, "curling")
       .def(py::init<>())
-      .def("get_obs", &OlympicsBase::get_obs);
+      .def("step", &curling::step)
+      .def("reset", &curling::reset, py::arg("reset_game") = false);
 }

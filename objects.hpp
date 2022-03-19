@@ -232,7 +232,8 @@ struct wall_t : component_t {
       else if (t1 >= 0 && t2 < 0)
         tl = t1;
       else
-        exit(233);
+        abort();
+
       // std::cout << ("endpoint collision time error");
     }
     return tl;
@@ -240,7 +241,8 @@ struct wall_t : component_t {
   point2 getattr(Target t) {
     if (t == Target::l1) return l1;
     if (t == Target::l2) return l2;
-    exit(233);  // panic
+    abort();
+    // panic
   };
 
   std::tuple<point2, point2> collision_response(point2 pos, point2 v, double r,
@@ -268,7 +270,8 @@ struct wall_t : component_t {
       vx_new = v[0] - factor * n[0];
       vy_new = v[1] - factor * n[1];
     } else {
-      exit(233);  //  raise NotImplementedError("collision response error")
+      abort();
+      //  raise NotImplementedError("collision response error")
     }
     auto col_x = pos[0] + v[0] * t;
     auto col_y = pos[1] + v[1] * t;
@@ -366,7 +369,7 @@ struct arc_t : component_t {
   double R;
   std::vector<double> init_pos;
   point2 center;
-  point2 getattr(Target t) { exit(233); };
+  point2 getattr(Target t) { abort(); };
 
   std::tuple<point2, point2> collision_response(point2 pos, point2 v, double r,
                                                 Target col_target, double t,
@@ -483,14 +486,18 @@ struct view_t {
   std::vector<int> init_obs;
 };
 using objects_t = std::vector<component_t*>;
-struct map_t {
+struct map_view_t {
   objects_t objects;
   view_t view;
   std::vector<agent_t> agents;
-  map_t() {}
+
+  ~map_view_t() = default;
+};
+struct map_t : map_view_t {
+  map_t(){};
   ~map_t() {
     for (auto i : objects) delete i;
-  }
+  };
   map_t& operator=(const map_t& rhs) {
     for (auto iter : objects) {
       delete iter;

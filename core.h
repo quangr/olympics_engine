@@ -170,13 +170,262 @@ class OlympicsBase {
             {current_agent_idx,
              map.objects[target_wall_idx]->getattr(collision_wall_target), 0});
     } else {
-      exit(233);
+      abort();
     }
   }
 
  public:
   OlympicsBase();
   obslist_t get_obs();
+};
+
+class curling : OlympicsBase {
+ private:
+  int final_winner;
+  float tau = 0.1;
+  int round_countdown;
+  float wall_restitution = 1;
+  float circle_restitution = 1;
+  bool print_log = false;
+  bool draw_obs = true;
+  bool show_traj = false;
+  bool release;
+  point2 start_pos{300, 150};
+  float start_init_obs = 90;
+  int max_n = 4;
+  int round_max_step = 100;
+  map_t map_copy;
+  float vis = 300;
+  float vis_clear = 10;
+  float top_area_gamma, down_area_gamma, gamma;
+  int temp_winner, round_step, game_round, current_team, num_purple, num_green,
+      purple_game_point, green_game_point;
+  void cross_detect() {
+    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+      auto agent = agent_list[agent_idx];
+      if (agent.is_ball) continue;
+      for (size_t object_idx = 0; agent_idx < map.objects.size(); agent_idx++) {
+        auto object = map.objects[object_idx];
+        if (!object->can_pass)
+          continue;
+        else {
+          if (object->color == red &&
+              object->check_cross(agent_pos[agent_idx], agent.r)) {
+            agent.alive = false;
+            // #agent.color = 'red'
+            gamma = down_area_gamma;  //   #this will change the gamma for the
+                                      //   whole env, so need to change if
+                                      //   dealing with multi-agent
+            release = true;
+            round_countdown = round_max_step - round_step;
+          }
+        }
+      }
+    }
+  }
+  bool is_terminal() {
+    if (num_green + num_purple == max_n * 2) {
+      if ((!release) && round_step > round_max_step) return true;
+
+      if (release) {
+        bool L = true;
+        for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+          if ((agent_v[agent_idx][0] * agent_v[agent_idx][0] +
+               agent_v[agent_idx][1] * agent_v[agent_idx][1]) < 1e-1)
+            L &= true;
+          else
+            L &= false;
+        }
+
+        return L;
+      }
+    } else
+      return false;
+  }
+  std::tuple<bool, int> _round_terminal() {
+    if ((round_step > round_max_step) &&
+        (!release))  //      #after maximum round step the agent has not
+                     //      released yet
+      return {true, -1};
+
+    // #agent_idx = -1
+    bool L = true;
+    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+      if ((!agent_list[agent_idx].alive) &&
+          ((agent_v[agent_idx][0] * agent_v[agent_idx][0] +
+            agent_v[agent_idx][1] * agent_v[agent_idx][1]) < 1e-1))
+        L &= true;
+      else
+        L &= false;
+    }
+
+    return {L, 0};
+  }
+
+  int current_winner() {
+    auto center = point2(300, 500);
+    auto min_dist = 1e4;
+    auto win_team = -1;
+    for (size_t i = 0; i < agent_list.size(); i++) {
+      auto agent = agent_list[i];
+      auto pos = agent_pos[i];
+      auto distance = (pos - center).norm();
+      if (distance < min_dist) {
+        win_team = agent.color == purple ? 0 : 1;
+        min_dist = distance;
+      }
+    }
+
+    return win_team;
+  }
+
+  obslist_t _reset_round() {
+    current_team = 1 - current_team;
+    // #convert last agent to ball
+    if (agent_list.size() != 0) {
+      agent_list[-1].to_ball();
+      agent_list[-1].alive = false;
+    }
+    Color new_agent_color;
+    if (current_team == 0) {
+      new_agent_color = purple;
+      num_purple += 1;
+    } else if (current_team == 1) {
+      new_agent_color = green;
+      num_green += 1;
+    } else {
+      abort();
+    }
+    agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
+    agent_init_pos[-1] = start_pos;
+    auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
+    obs_boundary_init.push_back(new_boundary);
+    agent_num += 1;
+    agent_pos.push_back(agent_init_pos[-1]);
+    agent_v.push_back({0, 0});
+    agent_accel.push_back({0, 0});
+    auto init_obs = start_init_obs;
+    agent_theta.push_back(init_obs);
+    agent_record.push_back({agent_init_pos[-1]});
+    release = false;
+    gamma = top_area_gamma;
+    round_step = 0;
+    return get_obs();
+  }
+  void cal_game_point() {
+    point2 center(300, 500);
+    std::vector<double> purple_dis;
+    std::vector<double> green_dis;
+    auto min_dist = 1e4;
+    auto closest_team = -1;
+    for (size_t i = 0; i < agent_list.size(); i++) {
+      auto agent = agent_list[i];
+      auto pos = agent_pos[i];
+      auto distance = (pos - center).norm();
+      if (agent.color == purple)
+        purple_dis.push_back(distance);
+      else if (agent.color == green)
+        green_dis.push_back(distance);
+      else
+        abort();
+
+      // raise NotImplementedError
+      if (distance < min_dist) {
+        closest_team = agent.color == purple ? 0 : 1;
+        min_dist = distance;
+      }
+    }
+    std::sort(purple_dis.begin(), purple_dis.end());
+    std::sort(green_dis.begin(), green_dis.end());
+    if (closest_team == 0) {
+      if (green_dis.size() == 0)
+        purple_game_point += purple_dis.size();
+      else {
+        for (auto t : purple_dis) {
+          purple_game_point += t < green_dis[0];
+        }
+      }
+    } else if (closest_team == 1)
+      if (purple_dis.size() == 0)
+        purple_game_point += green_dis.size();
+      else {
+        for (auto t : purple_dis) {
+          purple_game_point += t < purple_dis[0];
+        }
+      }
+  }
+  void _clear_agent() {
+    if ((round_step > round_max_step) && !release) {
+      agent_list.pop_back();
+      agent_pos.pop_back();
+      agent_v.pop_back();
+      agent_theta.pop_back();
+      agent_accel.pop_back();
+      agent_num -= 1;
+    }
+  }
+
+ public:
+  curling() = default;
+  obslist_t reset(bool reset_game = false) {
+    bool release = false;
+    top_area_gamma = 0.98;
+    down_area_gamma = 0.95;
+    gamma = top_area_gamma;
+
+    agent_num = 0;
+    agent_list.clear();
+    agent_init_pos.clear();
+    agent_pos.clear();
+    agent_previous_pos.clear();
+    agent_v.clear();
+    agent_accel.clear();
+    agent_theta.clear();
+    temp_winner = -1;
+    round_step = 0;
+
+    if (reset_game) {
+      assert(game_round == 1);
+      current_team = 1;
+      num_purple = 0;
+      num_green = 1;
+
+      map_copy = map;
+      map_copy.agents[0].color = green;
+      map_copy.agents[0].original_color = green;
+    } else {
+      num_purple = 1;
+      num_green = 0;
+      current_team = 0;
+      purple_game_point = 0;
+      green_game_point = 0;
+      game_round = 0;
+      map_copy = map;
+    }
+    obs_boundary_init.clear();
+    obs_boundary = obs_boundary_init;
+
+    generate_map(map_copy);
+    merge_map();
+
+    init_state();
+    step_cnt = 0;
+    done = false;
+    release = false;
+
+    // viewer = Viewer(view_setting)
+    display_mode = false;
+    // view_terminal = false
+
+    auto obs = get_obs();
+    return obs;
+    // if current_team == 0:
+    //     return [obs, np.zeros_like(obs)-1]
+    // else:
+    //     return [np.zeros_like(obs)-1, obs]
+  }
+  std::tuple<obslist_t, reward_t, bool, std::string> step(
+      std::deque<std::vector<double>> actions_list);
 };
 
 #endif
