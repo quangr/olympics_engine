@@ -2,7 +2,6 @@
 
 #include "core.h"
 #include "envpool/classic_control/curling.h"
-#include "envpool/classic_control/viewer.h"
 #include "envpool/core/py_envpool.h"
 // generate python-side (raw) CurlingEnvSpec
 typedef PyEnvSpec<classic_control::CurlingEnvSpec> CurlingEnvSpec;
@@ -25,5 +24,6 @@ PYBIND11_MODULE(classic_control_envpool, m) {
   py::class_<curling>(m, "curling")
       .def(py::init<>())
       .def("step", &curling::step)
-      .def("reset", &curling::reset, py::arg("reset_game") = false);
+      .def("reset", &curling::reset, py::arg("reset_game") = false)
+      .def_readwrite("current_team", &curling::current_team);
 }

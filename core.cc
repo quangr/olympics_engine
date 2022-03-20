@@ -6,8 +6,6 @@
 #include <optional>
 #include <vector>
 
-#include "viewer.h"
-
 namespace helperfunction {
 double cross_prod(point2 v1, point2 v2) {
   return v1.x() * v2.y() - v2.x() * v1.y();
@@ -170,7 +168,7 @@ void OlympicsBase::init_state() {
   agent_v.clear();
   agent_accel.clear();
   agent_theta.clear();
-  agent_record.clear();
+  // agent_record.clear();
   for (size_t i = 0; i < agent_list.size(); i++) {
     agent_pos.push_back(agent_init_pos[i]);
     agent_previous_pos.push_back(agent_init_pos[i]);
@@ -180,7 +178,7 @@ void OlympicsBase::init_state() {
     agent_theta.push_back(init_obs);
     agent_list[i].reset();
     agent_list[i].reset_color();
-    agent_record.push_back({agent_init_pos[i]});
+    // agent_record.push_back({agent_init_pos[i]});
   }
 }
 
@@ -267,13 +265,13 @@ obslist_t OlympicsBase::get_obs() {
     }
     map_deduced.agents.clear();
 
-    auto agent_self = agent_list[agent_idx];
-    agent.to_another_agent.clear();
-    agent.to_another_agent_rotated.clear();
+    auto& agent_self = agent_list[agent_idx];
+    agent_self.to_another_agent.clear();
+    agent_self.to_another_agent_rotated.clear();
     int temp_idx = 0;
     for (size_t a_i = 0; a_i < agent_list.size(); a_i++) {
       if (a_i == agent_idx) continue;
-      auto a_other = agent_list[a_i];
+      auto& a_other = agent_list[a_i];
       auto vec_o_b = point2(agent_pos[a_i][0], -agent_pos[a_i][1]);
       auto vec_oo_ = point2(-agent_x, agent_y);
       auto vec_ob = point2(vec_o_b[0] + vec_oo_[0], vec_o_b[1] + vec_oo_[1]);
@@ -284,7 +282,7 @@ obslist_t OlympicsBase::get_obs() {
         map_deduced.agents.push_back(a_other);
         a_other.temp_idx = temp_idx;
         map_objects.push_back(&a_other);
-        agent.to_another_agent.push_back(vec_ob);
+        agent_self.to_another_agent.push_back(vec_ob);
         temp_idx += 1;
       }
     }
@@ -294,9 +292,9 @@ obslist_t OlympicsBase::get_obs() {
     for (auto obj : map_deduced.objects) obj->update_cur_pos_rotated(theta);
     for (size_t id = 0; id < map_deduced.agents.size(); id++) {
       auto obj = map_deduced.agents[id];
-      auto vec_ob = agent.to_another_agent[id];
+      auto vec_ob = agent_self.to_another_agent[id];
       auto theta_obj = -theta;
-      agent.to_another_agent_rotated.push_back(
+      agent_self.to_another_agent_rotated.push_back(
           rotate2(vec_ob[0], vec_ob[1], theta_obj));
     }
     for (auto component = map_objects.rbegin(); component != map_objects.rend();

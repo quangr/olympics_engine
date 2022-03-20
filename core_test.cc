@@ -24,15 +24,19 @@
 
 // TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase(); }
 TEST(CurlingTEST, TESTSTEP) {
-  for (size_t iter = 0; iter < 5; iter++) {
-    curling c;
-    c.reset();
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> powerdis(-100.0, 200.0);
-    std::uniform_real_distribution<> angledis(-30.0, 30.0);
-    for (size_t i = 0; i < 150; i++) {
-      c.step({{powerdis(gen), angledis(gen)}, {powerdis(gen), angledis(gen)}});
-    }
+  curling c;
+  c.reset();
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> powerdis(-100.0, 200.0);
+  std::uniform_real_distribution<> angledis(-30.0, 30.0);
+  for (size_t i = 0; i < 500; i++) {
+    // double p1 = powerdis(gen), a1 = angledis(gen), p2 = powerdis(gen),
+    //        a2 = angledis(gen);
+    // std::cout << "step:" << i << std::endl;
+    // std::cin >> p1 >> a1 >> p2 >> a2;
+    // std::cout << p1 << ' ' << a1 << ' ' << p2 << ' ' << a2 << std::endl;
+    // c.step({{p1, a1}, {p2, a2}});
+    c.step({{200, 0}, {200, 0}});
   }
 }

@@ -6,6 +6,15 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <pybind11/functional.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+#include <string>
+#include <unordered_map>
+namespace py = pybind11;
+
 using point2 = Eigen::Vector2d;
 using mat2 = Eigen::Matrix2d;
 namespace helperfunction {
@@ -78,7 +87,6 @@ struct hash<std::tuple<TT...>> {
   }
 };
 }  // namespace std
-#include "viewer.h"
 
 struct ignore_t {
   std::unordered_set<std::tuple<int, int, double>> idx_ignore;

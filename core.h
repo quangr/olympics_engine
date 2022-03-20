@@ -21,7 +21,7 @@ class OlympicsBase {
   std::vector<point2> agent_v;
   std::vector<point2> agent_accel;
   std::vector<double> agent_theta;
-  std::vector<std::vector<point2>> agent_record;
+  // std::vector<std::vector<point2>> agent_record;
   std::unordered_map<point2, std::vector<int>> point2wall;
 
   //   std::vector<point2> agent_record;
@@ -194,11 +194,11 @@ class curling : OlympicsBase {
   double vis = 300;
   double vis_clear = 10;
   double top_area_gamma, down_area_gamma;
-  int temp_winner, round_step, game_round, current_team, num_purple, num_green,
+  int temp_winner, round_step, game_round, num_purple, num_green,
       purple_game_point, green_game_point;
   void cross_detect() {
     for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
-      auto agent = agent_list[agent_idx];
+      auto& agent = agent_list[agent_idx];
       if (agent.is_ball) continue;
       for (size_t object_idx = 0; object_idx < map.objects.size();
            object_idx++) {
@@ -280,8 +280,8 @@ class curling : OlympicsBase {
     current_team = 1 - current_team;
     // #convert last agent to ball
     if (agent_list.size() != 0) {
-      agent_list[-1].to_ball();
-      agent_list[-1].alive = false;
+      agent_list[agent_list.size() - 1].to_ball();
+      agent_list[agent_list.size() - 1].alive = false;
     }
     Color new_agent_color;
     if (current_team == 0) {
@@ -294,16 +294,16 @@ class curling : OlympicsBase {
       abort();
     }
     agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
-    agent_init_pos[-1] = start_pos;
+    agent_init_pos[agent_init_pos.size() - 1] = start_pos;
     auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
     obs_boundary_init.push_back(new_boundary);
     agent_num += 1;
-    agent_pos.push_back(agent_init_pos[-1]);
+    agent_pos.push_back(start_pos);
     agent_v.push_back({0, 0});
     agent_accel.push_back({0, 0});
     auto init_obs = start_init_obs;
     agent_theta.push_back(init_obs);
-    agent_record.push_back({agent_init_pos[-1]});
+    // agent_record.push_back({start_pos});
     release = false;
     gamma = top_area_gamma;
     round_step = 0;
@@ -363,6 +363,7 @@ class curling : OlympicsBase {
   }
 
  public:
+  int current_team;
   curling() {
     wall_restitution = 1;
     circle_restitution = 1;

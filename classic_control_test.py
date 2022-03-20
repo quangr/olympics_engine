@@ -152,33 +152,64 @@ import cv2
 #     # self.assertTrue(v.height==120)
 
 class _OlympicsBaseTest(absltest.TestCase):
-  def test_Build(self)->None:
+
+  # def test_determine(self)->None:
+  #   import ptvsd
+  #   ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+  #   print('Now is a good time to attach your debugger: Run: Python: Attach')
+  #   ptvsd.wait_for_attach()
+  #   env0=classic_control_envpool.curling()
+  #   env1=testhelper.curling.curling(create_scenario("curling"))
+  #   env0.reset()
+  #   env1.reset()
+  #   for i in range(1000):
+  #     # d0 = False
+  #     # while not d0:
+  #     print(f"step{i}", flush=True)
+  #     my=env0.step([[200,0],[200,0]])
+  #     my1=env1.step([[200,0],[200,0]])
+  #     print(my[1:],my1[1:])
+  #     self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
+  #     # self.assertTrue(my[1]==list(my1[1]))
+  #     # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
+  #     # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+
+  def run_align_check(self, env0: Any, env1: Any, reset_fn: Any,step:int=200) -> None:
+    import logging
+    from logging.handlers import RotatingFileHandler
+        
+    logging.basicConfig(handlers=[RotatingFileHandler(filename="/app/logs/align",
+                        mode='w', maxBytes=512000, backupCount=4)], level=logging.INFO,
+                        format='%(levelname)s %(asctime)s %(message)s', 
+                        datefmt='%m/%d/%Y%I:%M:%S %p')
+        
+    logger = logging.getLogger('my_logger')   
+    
+    actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(step)]
+    for i in range(step):
+      logger.info('This is a log message!')
+      reset_fn(env0, env1)
+      # d0 = False
+      # while not d0:
+      print(f"step{i}")
+      my=env0.step(actions[i])
+      my1=env1.step(actions[i])
+      self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
+  def test_random(self)->None:
     # import ptvsd
     # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
     # print('Now is a good time to attach your debugger: Run: Python: Attach')
     # ptvsd.wait_for_attach()
-    for iter_i in range(10):
+    def reset_fn(env0:Any, env1:Any) -> None:
+      env0.reset()
+      env1.reset()
+    for iter_i in range(2):
       a=classic_control_envpool.curling()
       testa=testhelper.curling.curling(create_scenario("curling"))
-      a.reset()
-      testa.reset()
-      # print(my)
-      actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
-      for i in range(500):
-        print(f"step{i}")
-        my=a.step(actions[0])[0][0]
-        my1=testa.step(actions[0])[0][0]
-        self.assertTrue((my1==my).all())
-    plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
-    # for i in range(50):
-    #   my=a.step([[200,0],[200,0]])[0][0]
-    # plt.imsave('/app/temp/test2.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
-    # for i in range(50):
-    #   my=a.step([[200,0],[200,0]])[0][0]
-    # plt.imsave('/app/temp/test3.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
-    # print(testhelper.core.OlympicsBase(create_scenario("curling")).obs_list)
-    # self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
-    # self.assertTrue(v.height==120)
+      self.run_align_check(a,testa,reset_fn)
+      # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
+      # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+
 
 
 if __name__ == "__main__":

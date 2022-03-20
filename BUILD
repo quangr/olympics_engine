@@ -5,8 +5,8 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "curling",
-    hdrs = ["curling.h",'core.h','viewer.h'],
-    srcs =['core.cc','viewer.cc','generator.cc','json.hpp','objects.hpp'],
+    hdrs = ["curling.h",'core.h'],
+    srcs =['core.cc','generator.cc','json.hpp','objects.hpp'],
     deps = [
         "@eigen",
         "//envpool/core:async_envpool",
