@@ -1,22 +1,21 @@
 
 #include <math.h>
-
-#include <Eigen/Dense>
-#include <iostream>
-#include <memory>
-#include <optional>
-#include <vector>
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <Eigen/Dense>
+#include <iostream>
+#include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 namespace py = pybind11;
-
 using point2 = Eigen::Vector2d;
 using mat2 = Eigen::Matrix2d;
+using rawimage_t = Eigen::Matrix<uint8_t, -1, -1>;
 namespace helperfunction {
 double cross_prod(point2 v1, point2 v2);
 double point2line(point2 l1, point2 l2, point2 point);
@@ -125,7 +124,7 @@ struct agent_t;
 struct object_t {
   ~object_t() = default;
   Color color;
-  virtual void update_obs_map(Eigen::MatrixXd& obs_map, int obs_size,
+  virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent,
                               const agent_t& agent_self) = 0;
@@ -183,7 +182,7 @@ struct agent_t : object_t, InternalState {
   bool is_ball = false;
   int temp_idx;
   void to_ball() { is_ball = true; };
-  virtual void update_obs_map(Eigen::MatrixXd& obs_map, int obs_size,
+  virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
     for (size_t i = 0; i < obs_size; i++) {
@@ -320,7 +319,7 @@ struct wall_t : component_t {
           helperfunction::rotate2(pos_x, pos_y, theta_obj));
     }
   };
-  virtual void update_obs_map(Eigen::MatrixXd& obs_map, int obs_size,
+  virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
     for (size_t i = 0; i < obs_size; i++) {
@@ -461,7 +460,7 @@ struct arc_t : component_t {
     auto theta_obj = -theta;
     cur_pos_rotated.push_back(helperfunction::rotate2(pos_x, pos_y, theta_obj));
   };
-  virtual void update_obs_map(Eigen::MatrixXd& obs_map, int obs_size,
+  virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
     for (size_t i = 0; i < obs_size; i++) {

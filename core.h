@@ -7,8 +7,7 @@
 using point2 = Eigen::Vector2d;
 using mat2 = Eigen::Matrix2d;
 
-using obslist_t = std::vector<Eigen::MatrixXd>;
-
+using obslist_t = Eigen::Matrix<uint8_t, -1, -1>;
 class OlympicsBase {
  protected:
   point2 action_f{-100, 200};
@@ -42,7 +41,6 @@ class OlympicsBase {
   int step_cnt = 0;
   bool done = false;
   int max_step = 500;
-  std::vector<Eigen::MatrixXd> obs_list;
 
   double energy_recover_rate = 200;
   int speed_cap = 500;
@@ -174,11 +172,12 @@ class OlympicsBase {
   }
 
  public:
+  obslist_t obs_list;
   OlympicsBase();
   obslist_t get_obs();
 };
 
-class curling : OlympicsBase {
+class curling : public OlympicsBase {
  private:
   bool release = false;
   int final_winner;

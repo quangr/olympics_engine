@@ -215,6 +215,7 @@ void arc_t::update_cur_pos(double agent_x, double agent_y) {
 }
 
 obslist_t OlympicsBase::get_obs() {
+  obslist_t obs_map;
   for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
     auto agent = agent_list[agent_idx];
     if (agent.is_ball) continue;
@@ -286,9 +287,7 @@ obslist_t OlympicsBase::get_obs() {
         temp_idx += 1;
       }
     }
-    obs_list.clear();
-
-    Eigen::MatrixXd obs_map = Eigen::MatrixXd::Zero(obs_size, obs_size);
+    obs_map = Eigen::Matrix<uint8_t, -1, -1>::Zero(obs_size, obs_size);
     for (auto obj : map_deduced.objects) obj->update_cur_pos_rotated(theta);
     for (size_t id = 0; id < map_deduced.agents.size(); id++) {
       auto obj = map_deduced.agents[id];
@@ -302,9 +301,10 @@ obslist_t OlympicsBase::get_obs() {
       (*component)
           ->update_obs_map(obs_map, obs_size, visibility, v_clear, theta, agent,
                            agent_self);
-    obs_list.push_back(obs_map);
+    // obs_list[agent_idx] = (obs_map);
   }
-  return obs_list;
+  obs_list = obs_map;
+  return obs_map;
 }
 
 std::vector<point2> OlympicsBase::actions_to_accel(
@@ -828,10 +828,10 @@ void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
   }
   agent_pos = temp_pos_container;
   agent_v = temp_v_container;
-  std::cout << "agent_pos: " << agent_pos[0][0] << ',' << agent_pos[0][1]
-            << std::endl;
-  std::cout << "agent_v: " << agent_v[0][0] << ',' << agent_v[0][1]
-            << std::endl;
+  // std::cout << "agent_pos: " << agent_pos[0][0] << ',' << agent_pos[0][1]
+  //           << std::endl;
+  // std::cout << "agent_v: " << agent_v[0][0] << ',' << agent_v[0][1]
+  //           << std::endl;
 };
 
 std::tuple<obslist_t, reward_t, bool, std::string> curling::step(

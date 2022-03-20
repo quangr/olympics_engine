@@ -20,17 +20,34 @@ from PIL import Image
 
 import numpy as np
 from absl.testing import absltest
-import testhelper.core
-import classic_control_envpool
-import testhelper.viewer
-import testhelper.curling
-import testhelper.helperfunction
-from testhelper.generator import create_scenario
-import matplotlib.pyplot as plt
-import cv2
+# import testhelper.core
+# import classic_control_envpool
+# import testhelper.curling
+# import testhelper.helperfunction
+# from testhelper.generator import create_scenario
+# import matplotlib.pyplot as plt
+# import cv2
+from envpool.classic_control import CurlingEnvSpec,CurlingGymEnvPool
+# from envpool.classic_control import CurlingEnvSpec, _CurlingEnvPool
 
-# class _ClassicControlEnvPoolTest(absltest.TestCase):
+class _ClassicControlEnvPoolTest(absltest.TestCase):
 
+  def testbuild(self)->None:
+    # import ptvsd
+    # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+    # print('Now is a good time to attach your debugger: Run: Python: Attach')
+    # ptvsd.wait_for_attach()
+    print("a")
+    config = CurlingEnvSpec.gen_config(num_envs=1,max_episode_steps=200, seed=0)
+    spec = CurlingEnvSpec(config)
+    env0 = CurlingGymEnvPool(spec)
+    a=env0.reset()
+    print(a)
+    act_space = env0.action_space
+    # action = np.array([ for _ in range(num_envs)])
+    print(act_space)
+    a=env0.step(np.array([[12,2,2,2] for _ in range(1)]))
+    print(a)
 #   # def run_space_check(self, spec_cls: Any) -> None:
 #   #   """Check if envpool.observation_space == gym.make().observation_space."""
 #   #   # TODO(jiayi): wait for #27
@@ -151,64 +168,64 @@ import cv2
 #     self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
 #     # self.assertTrue(v.height==120)
 
-class _OlympicsBaseTest(absltest.TestCase):
+# class _OlympicsBaseTest(absltest.TestCase):
 
-  # def test_determine(self)->None:
-  #   import ptvsd
-  #   ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-  #   print('Now is a good time to attach your debugger: Run: Python: Attach')
-  #   ptvsd.wait_for_attach()
-  #   env0=classic_control_envpool.curling()
-  #   env1=testhelper.curling.curling(create_scenario("curling"))
-  #   env0.reset()
-  #   env1.reset()
-  #   for i in range(1000):
-  #     # d0 = False
-  #     # while not d0:
-  #     print(f"step{i}", flush=True)
-  #     my=env0.step([[200,0],[200,0]])
-  #     my1=env1.step([[200,0],[200,0]])
-  #     print(my[1:],my1[1:])
-  #     self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
-  #     # self.assertTrue(my[1]==list(my1[1]))
-  #     # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
-  #     # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+#   # def test_determine(self)->None:
+#   #   import ptvsd
+#   #   ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+#   #   print('Now is a good time to attach your debugger: Run: Python: Attach')
+#   #   ptvsd.wait_for_attach()
+#   #   env0=classic_control_envpool.curling()
+#   #   env1=testhelper.curling.curling(create_scenario("curling"))
+#   #   env0.reset()
+#   #   env1.reset()
+#   #   for i in range(1000):
+#   #     # d0 = False
+#   #     # while not d0:
+#   #     print(f"step{i}", flush=True)
+#   #     my=env0.step([[200,0],[200,0]])
+#   #     my1=env1.step([[200,0],[200,0]])
+#   #     print(my[1:],my1[1:])
+#   #     self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
+#   #     # self.assertTrue(my[1]==list(my1[1]))
+#   #     # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
+#   #     # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
 
-  def run_align_check(self, env0: Any, env1: Any, reset_fn: Any,step:int=200) -> None:
-    import logging
-    from logging.handlers import RotatingFileHandler
+#   def run_align_check(self, env0: Any, env1: Any, reset_fn: Any,step:int=200) -> None:
+#     # import logging
+#     # from logging.handlers import RotatingFileHandler
         
-    logging.basicConfig(handlers=[RotatingFileHandler(filename="/app/logs/align",
-                        mode='w', maxBytes=512000, backupCount=4)], level=logging.INFO,
-                        format='%(levelname)s %(asctime)s %(message)s', 
-                        datefmt='%m/%d/%Y%I:%M:%S %p')
+#     # logging.basicConfig(handlers=[RotatingFileHandler(filename="/app/logs/align",
+#     #                     mode='w', maxBytes=512000, backupCount=4)], level=logging.INFO,
+#     #                     format='%(levelname)s %(asctime)s %(message)s', 
+#     #                     datefmt='%m/%d/%Y%I:%M:%S %p')
         
-    logger = logging.getLogger('my_logger')   
-    
-    actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(step)]
-    for i in range(step):
-      logger.info('This is a log message!')
-      reset_fn(env0, env1)
-      # d0 = False
-      # while not d0:
-      print(f"step{i}")
-      my=env0.step(actions[i])
-      my1=env1.step(actions[i])
-      self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
-  def test_random(self)->None:
-    # import ptvsd
-    # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-    # print('Now is a good time to attach your debugger: Run: Python: Attach')
-    # ptvsd.wait_for_attach()
-    def reset_fn(env0:Any, env1:Any) -> None:
-      env0.reset()
-      env1.reset()
-    for iter_i in range(2):
-      a=classic_control_envpool.curling()
-      testa=testhelper.curling.curling(create_scenario("curling"))
-      self.run_align_check(a,testa,reset_fn)
-      # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
-      # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
+#     # logger = logging.getLogger('my_logger')   
+#     actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(step)]
+#     for i in range(step):
+#       # logger.info('This is a log message!')
+#       reset_fn(env0, env1)
+#       # d0 = False
+#       # while not d0:
+#       print(f"step{i}",flush=True)
+#       my=env0.step(actions[i])
+#       my1=env1.step(actions[i])
+#       self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
+#       self.assertTrue((list(my[1])==list(my1[1])),f"step:{i},reward0,{list(my[1])},reward1:{list(my1[1])},")
+#   def test_random(self)->None:
+#     # import ptvsd
+#     # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+#     # print('Now is a good time to attach your debugger: Run: Python: Attach')
+#     # ptvsd.wait_for_attach()
+#     def reset_fn(env0:Any, env1:Any) -> None:
+#       env0.reset()
+#       env1.reset()
+#     for iter_i in range(2):
+#       a=classic_control_envpool.curling()
+#       testa=testhelper.curling.curling(create_scenario("curling"))
+#       self.run_align_check(a,testa,reset_fn,2000)
+#       # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
+#       # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
 
 
 

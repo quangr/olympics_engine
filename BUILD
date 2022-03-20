@@ -36,6 +36,7 @@ py_test(
     name = "classic_control_test",
     srcs = ["classic_control_test.py"],
     deps = [
+        ":classic_control",
         requirement("numpy"),
         requirement("absl-py"),
         requirement("pygame"),

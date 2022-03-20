@@ -1,5 +1,4 @@
 import math
-import pygame
 import copy
 import time
 import numpy as np
@@ -1154,50 +1153,6 @@ class OlympicsBase(object):
 
                 #print('OVER-SPEED!!!')
 
-
-
-    def render(self, info=None):
-
-        if not self.display_mode:
-            self.viewer.set_mode()
-            self.display_mode=True
-
-        self.viewer.draw_background()
-        # 先画map; ball在map之上
-        for w in self.map['objects']:
-            self.viewer.draw_map(w)
-
-        self.viewer.draw_ball(self.agent_pos, self.agent_list)
-        if self.show_traj:
-            self.get_trajectory()
-            self.viewer.draw_trajectory(self.agent_record, self.agent_list)
-        self.viewer.draw_direction(self.agent_pos, self.agent_accel)
-        #self.viewer.draw_map()
-
-        if self.draw_obs:
-            self.viewer.draw_obs(self.obs_boundary, self.agent_list)
-            self.viewer.draw_view(self.obs_list, self.agent_list)
-
-        #draw energy bar
-        #debug('agent remaining energy = {}'.format([i.energy for i in self.agent_list]), x=100)
-        self.viewer.draw_energy_bar(self.agent_list)
-        debug('Agent 0', x=570, y=110)
-        debug('Agent 1', x=640, y=110)
-        if self.map_num is not None:
-            debug('Map {}'.format(self.map_num), x=100)
-
-        # debug('mouse pos = '+ str(pygame.mouse.get_pos()))
-        debug('Step: ' + str(self.step_cnt), x=30)
-        if info is not None:
-            debug(info, x=100)
-
-
-        for event in pygame.event.get():
-            # 如果单击关闭窗口，则退出
-            if event.type == pygame.QUIT:
-                sys.exit()
-        pygame.display.flip()
-        #self.viewer.background.fill((255, 255, 255))
 
     def get_trajectory(self):
 
