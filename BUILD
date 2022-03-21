@@ -48,6 +48,23 @@ py_test(
     data = [":classic_control_envpool.so"],
 )
 
+py_binary(
+    name = "train_emit",
+    srcs = ["train/train_emit.py"],
+    deps = [
+        "//envpool",
+        requirement("numpy"),
+        requirement("absl-py"),
+        requirement("pygame"),
+        requirement("matplotlib"),
+        requirement("opencv-python-headless"),
+        requirement("ptvsd"),
+        requirement("torch"),
+        requirement("tianshou"),
+    ]
+)
+
+
 py_library(
     name = "classic_control_registration",
     srcs = ["registration.py"],

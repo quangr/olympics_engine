@@ -36,7 +36,6 @@ class CurlingEnvFns {
   }
   template <typename Config>
   static decltype(auto) StateSpec(const Config& conf) {
-    // TODO(jiayi): specify range with [4.8, fmax, np.pi / 7.5, fmax]
     return MakeDict(
         "obs"_.bind(Spec<uint8_t>(
             {conf["stack_num"_], conf["img_height"_], conf["img_width"_]},
@@ -89,12 +88,12 @@ class CurlingEnv : public Env<CurlingEnvSpec>, public curling {
     done_ = false;
     State state = Allocate();
     state["reward"_] = 0.0f;
-    state["info:reward"_][0] = 0.0d;
-    state["info:reward"_][1] = 0.0d;
-    state["info:pos"_][0] = 0.0d;
-    state["info:pos"_][1] = 0.0d;
-    state["info:v"_][0] = 0.0d;
-    state["info:v"_][1] = 0.0d;
+    state["info:reward"_][0] = 0.0;
+    state["info:reward"_][1] = 0.0;
+    state["info:pos"_][0] = 0.0;
+    state["info:pos"_][1] = 0.0;
+    state["info:v"_][0] = 0.0;
+    state["info:v"_][1] = 0.0;
     state["info:curteam"_] = 1;
     state["info:release"_] = false;
     PushStack(false, false);
@@ -103,9 +102,20 @@ class CurlingEnv : public Env<CurlingEnvSpec>, public curling {
 
   void Step(const Action& action) override {
     State state = Allocate();
+    std::cout << 1;
     // state["reward"_] = 0.0d;
-    curling::step({{action["action"_][0], action["action"_][1]},
-                   {action["action"_][2], action["action"_][3]}});
+    auto [ta, tb, tc, td] =
+        curling::step({{action["action"_][0], action["action"_][1]},
+                       {action["action"_][2], action["action"_][3]}});
+    state["reward"_] = 0.0f;
+    state["info:reward"_][0] = std::get<0>(tb);
+    state["info:reward"_][1] = std::get<1>(tb);
+    state["info:pos"_][0] = agent_pos[cur_ball][0];
+    state["info:pos"_][1] = agent_pos[cur_ball][1];
+    state["info:v"_][0] = agent_v[cur_ball][0];
+    state["info:v"_][1] = agent_v[cur_ball][1];
+    state["info:curteam"_] = current_team;
+    state["info:release"_] = release;
     PushStack(false, false);
     WriteObs(state);
   }

@@ -841,6 +841,7 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
   if (!release) {
     for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
       if (!agent_list[agent_idx].is_ball) {
+        cur_ball = agent_idx;
         action[agent_idx] = actions_list[0];
         actions_list.pop_front();
       }

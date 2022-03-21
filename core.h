@@ -179,7 +179,6 @@ class OlympicsBase {
 
 class curling : public OlympicsBase {
  private:
-  bool release = false;
   int final_winner;
   int round_countdown;
   bool print_log = false;
@@ -362,6 +361,8 @@ class curling : public OlympicsBase {
   }
 
  public:
+  int cur_ball = 0;
+  bool release = false;
   int current_team;
   curling() {
     wall_restitution = 1;
