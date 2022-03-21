@@ -305,7 +305,7 @@ obslist_t OlympicsBase::get_obs() {
   }
   obs_list = obs_map;
   if (obs_list.data() == 0) {
-    abort();
+    throw std::runtime_error("not implemented");
   }
   return obs_map;
 }
@@ -420,7 +420,8 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
         else if (t_inner1 >= 0 && t_inner2 <= 0)
           t1 = t_inner1;
         else
-          abort();
+          throw std::runtime_error("not implemented");
+
       //                            #print('CHECK t1 = {}, t2 =
       //                            {}'.format(t_inner1, t_inner2))
 
@@ -465,7 +466,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
           else if (t_outter1 >= 0 && t_outter2 <= 0)  // inside the circle
             t2 = t_outter1;
           else
-            abort();
+            throw std::runtime_error("not implemented");
 
         }  // raise NotImplementedError
       } else if (t1_check && not t2_check)
@@ -487,7 +488,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
         col_target = inner;
         col_t = t1;
       } else
-        abort();
+        throw std::runtime_error("not implemented");
 
     }  // #print('t1 = {}, t2 = {}'.format(t1, t2))
     else if (t1 < 0 and t2 >= 0) {
@@ -503,7 +504,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
     return {col_t, col_target == None ? None : arc};
 
   } else {
-    abort();
+    throw std::runtime_error("not implemented");
     // not implement
   }
 }
@@ -540,7 +541,7 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
             check = !ignore.contains({agent_idx, object_idx, temp_t});
           else
             // raise NotImplementedError('bounceable_wall_collision_time error')
-            abort();
+            throw std::runtime_error("bounceable_wall_collision_time error");
         }
         if (check) {
           current_min_t = temp_t;
@@ -613,7 +614,7 @@ std::tuple<point2, point2, point2, point2> OlympicsBase::CCD_circle_collision_f(
   auto relative_pos =
       point2(old_pos1[0] - old_pos2[0], old_pos1[1] - old_pos2[1]);
   auto relative_v = point2(old_v1[0] - old_v2[0], old_v1[1] - old_v2[1]);
-  if (relative_v.norm() == 0) abort();
+  if (relative_v.norm() == 0) throw std::runtime_error("not implemented");
 
   auto pos_v =
       relative_pos[0] * relative_v[0] + relative_pos[1] * relative_v[1];
@@ -878,7 +879,7 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
       else if (temp_winner == 1)
         step_reward = {0., 1};
       else
-        abort();
+        throw std::runtime_error("not implemented");
 
       // raise NotImplementedError
       obs_next = _reset_round();
@@ -913,7 +914,7 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
       auto next_obs = reset(true);
       return {next_obs, step_reward, false, "game1 ends, switch position"};
     } else {
-      abort();
+      throw std::runtime_error("not implemented");
     }
   }
   // if (current_team == 0)

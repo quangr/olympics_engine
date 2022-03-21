@@ -6,7 +6,7 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "curling",
     hdrs = ["curling.h",'core.h'],
-    srcs =['core.cc','generator.cc','json.hpp','objects.hpp'],
+    srcs =["curling.h",'core.cc','generator.cc','json.hpp','objects.hpp'],
     deps = [
         "@eigen",
         "//envpool/core:async_envpool",
@@ -64,6 +64,21 @@ py_binary(
     ]
 )
 
+py_binary(
+    name = "env_test",
+    srcs = ["env_test.py"],
+    deps = [
+        ":classic_control",
+        requirement("numpy"),
+        requirement("absl-py"),
+        requirement("pygame"),
+        requirement("matplotlib"),
+        requirement("opencv-python-headless"),
+        requirement("ptvsd"),
+        requirement("torch"),
+        requirement("tianshou"),
+    ]
+)
 
 py_library(
     name = "classic_control_registration",

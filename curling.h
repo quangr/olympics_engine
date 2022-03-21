@@ -104,7 +104,7 @@ class CurlingEnv : public Env<CurlingEnvSpec>, public curling {
 
   void Step(const Action& action) override {
     State state = Allocate();
-    std::cout << 1;
+    // std::cout << 1;
     // state["reward"_] = 0.0d;
     auto [ta, tb, tc, td] =
         curling::step({{action["action"_][0], action["action"_][1]},
@@ -162,14 +162,9 @@ class CurlingSimpleEnvFns {
   }
   template <typename Config>
   static decltype(auto) StateSpec(const Config& conf) {
-    return MakeDict(
-        "obs"_.bind(Spec<uint8_t>(
-            {conf["stack_num"_], conf["img_height"_], conf["img_width"_]},
-            {0, 7})),
-        "info:reward"_.bind(Spec<double>({2})),
-        "info:release"_.bind(Spec<bool>({1})),
-        "info:pos"_.bind(Spec<double>({2})), "info:v"_.bind(Spec<double>({2})),
-        "info:curteam"_.bind(Spec<int>({1})));
+    return MakeDict("obs"_.bind(Spec<double>({4})),
+                    "info:release"_.bind(Spec<bool>({1})),
+                    "info:curteam"_.bind(Spec<int>({1})));
   }
   template <typename Config>
   static decltype(auto) ActionSpec(const Config& conf) {
@@ -186,7 +181,6 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
   std::vector<Array> maxpool_buf_;
   FrameSpec raw_spec_, resize_spec_, transpose_spec_;
   int trans[3][2] = {{0, 1}, {2, 1}, {2, 2}}, _inter = 0;
-  std::random_device rd;
 
  public:
   CurlingSimpleEnv(const Spec& spec, int env_id)
@@ -194,13 +188,12 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
         curling(),
         stack_num_(spec.config["stack_num"_]),
         done_(true),
-        raw_spec_({30, 30}),
-        resize_spec_({spec.config["img_height"_], spec.config["img_width"_]}),
-        transpose_spec_(
-            {spec.config["img_height"_], spec.config["img_width"_]}) {
-    for (int i = 0; i < 2; ++i) {
-      maxpool_buf_.push_back(std::move(Array(raw_spec_)));
-    }
+        raw_spec_({4}),
+        resize_spec_({4}),
+        transpose_spec_({4}) {
+    // for (int i = 0; i < 2; ++i) {
+    //   maxpool_buf_.push_back(std::move(Array(raw_spec_)));
+    // }
     for (int i = 0; i < stack_num_; ++i) {
       stack_buf_.push_back(Array(transpose_spec_));
     }
@@ -213,54 +206,51 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
     // auto&& a = curling::reset(true);
     auto&& a = curling::reset();
     done_ = false;
-    curling::_render = true;
+    curling::_render = false;
     State state = Allocate();
     state["reward"_] = 0.0f;
-    state["info:reward"_][0] = 0.0;
-    state["info:reward"_][1] = 0.0;
-    state["info:pos"_][0] = 0.0;
-    state["info:pos"_][1] = 0.0;
-    state["info:v"_][0] = 0.0;
-    state["info:v"_][1] = 0.0;
-    state["info:curteam"_] = 1;
+    state["info:curteam"_] = 0;
     state["info:release"_] = false;
-    PushStack(false, false);
+    // PushStack(false, false);
     WriteObs(state);
   }
 
   void Step(const Action& action) override {
+    std::random_device rd;
     State state = Allocate();
-    std::cout << 1;
+    // std::cout << 1;
     std::uniform_real_distribution<> powerdis(-100.0, 200.0);
     std::uniform_real_distribution<> angledis(-30.0, 30.0);
     // state["reward"_] = 0.0d;
     std::mt19937 gen(rd());
     if (_inter == 0) {
       auto [ta, tb, tc, td] =
-          curling::step({{action["action"_][0], action["action"_][1]},
-                         {powerdis(gen), angledis(gen)}});
+          curling::step({{action["action"_][0], action["action"_][1]}});
       state["reward"_] = 0.0f;
-      state["info:reward"_][0] = std::get<0>(tb);
-      state["info:reward"_][1] = std::get<1>(tb);
-      state["info:pos"_][0] = agent_pos[cur_ball][0];
-      state["info:pos"_][1] = agent_pos[cur_ball][1];
-      state["info:v"_][0] = agent_v[cur_ball][0];
-      state["info:v"_][1] = agent_v[cur_ball][1];
       state["info:curteam"_] = current_team;
       state["info:release"_] = release;
-      _inter = trans[_inter][current_team];
-      PushStack(false, false);
+      // _inter = trans[_inter][current_team];
+      // PushStack(false, false);
     }
-    if (_inter == 1) {
-      while (_inter != 2) {
+    if (release) {
+      while (current_team != 1) {
         curling::_render = false;
-        curling::step({{action["action"_][0], action["action"_][1]},
-                       {powerdis(gen), angledis(gen)}});
-        _inter = trans[_inter][current_team];
+        curling::step({{0, 0}});
+        // std::cout << step_cnt << std::endl;
+      }
+    }
+    // std::cout << "finish one " << std::endl;
+    if (current_team == 1) {
+      while (current_team != 0) {
+        curling::_render = false;
+        curling::step({{powerdis(gen), angledis(gen)}});
+        // std::cout << step_cnt << std::endl;
       }
       done_ = true;
+      // std::cout << temp_winner;
       state["reward"_] = temp_winner == 0 ? 1.0f : 0.0f;
     }
+
     WriteObs(state);
   }
 
@@ -275,8 +265,11 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
     // }
     stack_buf_.pop_front();
     stack_buf_.push_back(Array(transpose_spec_));
-    memcpy(stack_buf_[stack_buf_.size() - 1].data(), ptr,
-           stack_buf_[stack_buf_.size() - 1].size);
+    stack_buf_[stack_buf_.size() - 1][0] = agent_pos[cur_ball][0];
+    stack_buf_[stack_buf_.size() - 1][1] = agent_pos[cur_ball][1];
+    stack_buf_[stack_buf_.size() - 1][2] = agent_v[cur_ball][0];
+    stack_buf_[stack_buf_.size() - 1][3] = agent_v[cur_ball][1];
+
     // if (push_all) {
     //   for (auto& s : stack_buf_) {
     //     uint8_t* ptr_s = static_cast<uint8_t*>(s.data());
@@ -287,9 +280,14 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
     // }
   };
   void WriteObs(State& state) {  // NOLINT
-    for (int i = 0; i < stack_num_; ++i) {
-      state["obs"_].Slice(i, i + 1).Assign(stack_buf_[i]);
-    }
+    state["obs"_][0] = agent_pos[cur_ball][0];
+    state["obs"_][1] = agent_pos[cur_ball][1];
+    state["obs"_][2] = agent_v[cur_ball][0];
+    state["obs"_][3] = agent_v[cur_ball][1];
+
+    // for (int i = 0; i < stack_num_; ++i) {
+    //   state["obs"_].Slice(i, i + 1).Assign(stack_buf_[i]);
+    // }
   }
 };
 

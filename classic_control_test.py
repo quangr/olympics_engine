@@ -27,27 +27,27 @@ from absl.testing import absltest
 # from testhelper.generator import create_scenario
 # import matplotlib.pyplot as plt
 # import cv2
-# from envpool.classic_control import CurlingEnvSpec,CurlingGymEnvPool
+from envpool.classic_control import CurlingSimpleEnvSpec,CurlingSimpleGymEnvPool
 # from envpool.classic_control import CurlingEnvSpec, _CurlingEnvPool
 
-# class _ClassicControlEnvPoolTest(absltest.TestCase):
+class _ClassicControlEnvPoolTest(absltest.TestCase):
 
-#   def testbuild(self)->None:
-#     # import ptvsd
-#     # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-#     # print('Now is a good time to attach your debugger: Run: Python: Attach')
-#     # ptvsd.wait_for_attach()
-#     print("a")
-#     config = CurlingEnvSpec.gen_config(num_envs=1,max_episode_steps=200, seed=0)
-#     spec = CurlingEnvSpec(config)
-#     env0 = CurlingGymEnvPool(spec)
-#     a=env0.reset()
-#     print(a)
-#     act_space = env0.action_space
-#     # action = np.array([ for _ in range(num_envs)])
-#     print(act_space)
-#     a=env0.step(np.array([[12,2,2,2] for _ in range(1)]))
-#     print(a)
+  def testbuild(self)->None:
+    # import ptvsd
+    # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+    # print('Now is a good time to attach your debugger: Run: Python: Attach')
+    # ptvsd.wait_for_attach()
+    print("a")
+    # config = CurlingEnvSpec.gen_config(num_envs=1,max_episode_steps=200, seed=0)
+    # spec = CurlingEnvSpec(config)
+    # env0 = CurlingGymEnvPool(spec)
+    # a=env0.reset()
+    # print(a)
+    # act_space = env0.action_space
+    # # action = np.array([ for _ in range(num_envs)])
+    # print(act_space)
+    # a=env0.step(np.array([[12,2,2,2] for _ in range(1)]))
+    # print(a)
 #   # def run_space_check(self, spec_cls: Any) -> None:
 #   #   """Check if envpool.observation_space == gym.make().observation_space."""
 #   #   # TODO(jiayi): wait for #27

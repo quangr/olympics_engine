@@ -38,7 +38,6 @@ class OlympicsBase {
   double wall_restitution = 0.5;
   double circle_restitution = 0.5;
 
-  int step_cnt = 0;
   bool done = false;
   int max_step = 500;
 
@@ -167,11 +166,12 @@ class OlympicsBase {
             {current_agent_idx,
              map.objects[target_wall_idx]->getattr(collision_wall_target), 0});
     } else {
-      abort();
+      throw std::runtime_error("not implemented");
     }
   }
 
  public:
+  int step_cnt = 0;
   obslist_t obs_list;
   OlympicsBase();
   obslist_t get_obs();
@@ -289,7 +289,7 @@ class curling : public OlympicsBase {
       new_agent_color = green;
       num_green += 1;
     } else {
-      abort();
+      throw std::runtime_error("not implemented");
     }
     agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
     agent_init_pos[agent_init_pos.size() - 1] = start_pos;
@@ -322,7 +322,7 @@ class curling : public OlympicsBase {
       else if (agent.color == green)
         green_dis.push_back(distance);
       else
-        abort();
+        throw std::runtime_error("not implemented");
 
       // raise NotImplementedError
       if (distance < min_dist) {
