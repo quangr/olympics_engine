@@ -7,8 +7,12 @@
 typedef PyEnvSpec<classic_control::CurlingEnvSpec> CurlingEnvSpec;
 // generate python-side (raw) CurlingEnvPool
 typedef PyEnvPool<classic_control::CurlingEnvPool> CurlingEnvPool;
+typedef PyEnvSpec<classic_control::CurlingSimpleEnvSpec> CurlingSimpleEnvSpec;
+// generate python-side (raw) CurlingEnvPool
+typedef PyEnvPool<classic_control::CurlingSimpleEnvPool> CurlingSimpleEnvPool;
 // generate classic_control_envpool.so
 PYBIND11_MODULE(classic_control_envpool, m) {
+  REGISTER(m, CurlingSimpleEnvSpec, CurlingSimpleEnvPool);
   REGISTER(m, CurlingEnvSpec, CurlingEnvPool);
   // m.def("readjson", &readjson);
   // py::class_<Viewer>(m, "Viewer")

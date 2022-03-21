@@ -192,8 +192,8 @@ class curling : public OlympicsBase {
   double vis = 300;
   double vis_clear = 10;
   double top_area_gamma, down_area_gamma;
-  int temp_winner, round_step, game_round, num_purple, num_green,
-      purple_game_point, green_game_point;
+  int round_step, game_round, num_purple, num_green, purple_game_point,
+      green_game_point;
   void cross_detect() {
     for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       auto& agent = agent_list[agent_idx];
@@ -305,7 +305,7 @@ class curling : public OlympicsBase {
     release = false;
     gamma = top_area_gamma;
     round_step = 0;
-    return get_obs();
+    return _render ? get_obs() : obs_list;
   }
   void cal_game_point() {
     point2 center(300, 500);
@@ -361,6 +361,8 @@ class curling : public OlympicsBase {
   }
 
  public:
+  int temp_winner;
+  bool _render = true;
   int cur_ball = 0;
   bool release = false;
   int current_team;

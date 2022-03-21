@@ -1,3 +1,7 @@
+import ptvsd
+ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+print('Now is a good time to attach your debugger: Run: Python: Attach')
+ptvsd.wait_for_attach()
 from typing import Dict
 import gym
 import tianshou as ts
@@ -5,12 +9,8 @@ import envpool
 import numpy as np
 from collections import deque
 from tianshou.data import Batch, ReplayBuffer
-import ptvsd
 import gym.spaces as spaces
 from torch.distributions.normal import Normal
-ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-print('Now is a good time to attach your debugger: Run: Python: Attach')
-ptvsd.wait_for_attach()
 
 actions_one_map=list(range(0,200,20))
 actions_two_map=list(range(-30,30,5))
@@ -46,8 +46,8 @@ action_num=4
 # train_envs = ts.env.SubprocVectorEnv([lambda:EmitWrapper(make("olympics-curling")) for _ in range(10)])
 # test_envs = ts.env.SubprocVectorEnv([lambda:EmitWrapper(make("olympics-curling")) for _ in range(100)])
 import envpool
-train_envs = envpool.make_gym("Curling-v0", num_envs=10)
-test_envs = envpool.make_gym("Curling-v0", num_envs=10)
+train_envs = envpool.make_gym("Curling-v1", num_envs=10)
+test_envs = envpool.make_gym("Curling-v1", num_envs=10)
 
 import torch, numpy as np
 from torch import nn
@@ -65,7 +65,7 @@ class CnnPolicy(nn.Module):
             nn.Flatten(),
             nn.Linear(49,20),
             nn.ReLU(),
-            nn.Linear(20,4)
+            nn.Linear(20,2)
         ).to(device)
         self.stdmodel=nn.Sequential(
             nn.Conv2d(2,2,3),
@@ -77,7 +77,7 @@ class CnnPolicy(nn.Module):
             nn.Flatten(),
             nn.Linear(49,20),
             nn.ReLU(),
-            nn.Linear(20,4)
+            nn.Linear(20,2)
         ).to(device)
     def forward(self,input:torch.Tensor, state:torch.Tensor=None, info:Dict={})->torch.Tensor:
         return (self.locmodel(torch.tensor(input,dtype=torch.float32,device=device)),self.stdmodel(torch.tensor(input,dtype=torch.float32,device=device))
@@ -119,7 +119,7 @@ class MyProcessor:
             # means that it is called after env.reset(), it can only process the obs
             return Batch()  # none of the variables are needed to be updated
         else:
-            print(kwargs)
+            # print(kwargs)
             return Batch(rew=kwargs['rew'])
 
 
@@ -129,7 +129,7 @@ def MultivariateNormaldis(loc,scale):# type: ignore
 net = CnnPolicy()
 crt=CnnValue()
 optim = torch.optim.Adam(list(net.parameters()) + list(crt.parameters()), lr=1e-4)
-policy = ts.policy.PPOPolicy(net,crt, optim,MultivariateNormaldis,advantage_normalization=False, discount_factor=0.1,action_space =spaces.Box( np.array([-100,-30,-100,-30]), np.array([200,30,200,30])))
+policy = ts.policy.PPOPolicy(net,crt, optim,MultivariateNormaldis,advantage_normalization=False, discount_factor=0.1,action_space =spaces.Box( np.array([-100,-30]), np.array([200,30])))
 train_collector = ts.data.Collector(policy, train_envs, ts.data.VectorReplayBuffer(200000, 100), exploration_noise=True,preprocess_fn=test_processor.preprocess_fn)
 test_collector = ts.data.Collector(policy, test_envs, exploration_noise=True,preprocess_fn=test_processor.preprocess_fn)
 result = ts.trainer.onpolicy_trainer(

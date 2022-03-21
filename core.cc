@@ -304,6 +304,9 @@ obslist_t OlympicsBase::get_obs() {
     // obs_list[agent_idx] = (obs_map);
   }
   obs_list = obs_map;
+  if (obs_list.data() == 0) {
+    abort();
+  }
   return obs_map;
 }
 
@@ -851,7 +854,8 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
   if (!release) cross_detect();
   step_cnt += 1;
   round_step += 1;
-  auto obs_next = get_obs();
+  auto obs_next = obs_list;
+  if (_render) obs_next = get_obs();
   auto done = is_terminal();
   reward_t step_reward;
   if (!done) {
