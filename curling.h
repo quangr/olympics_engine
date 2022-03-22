@@ -103,12 +103,12 @@ class CurlingEnv : public Env<CurlingEnvSpec>, public curling {
   }
 
   void Step(const Action& action) override {
-    State state = Allocate();
     // std::cout << 1;
     // state["reward"_] = 0.0d;
     auto [ta, tb, tc, td] =
         curling::step({{action["action"_][0], action["action"_][1]},
                        {action["action"_][2], action["action"_][3]}});
+    State state = Allocate();
     state["reward"_] = 0.0f;
     state["info:reward"_][0] = std::get<0>(tb);
     state["info:reward"_][1] = std::get<1>(tb);
@@ -204,7 +204,7 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
   void Reset() override {
     // WONDERWHY
     // auto&& a = curling::reset(true);
-    auto&& a = curling::reset();
+    curling::reset();
     done_ = false;
     curling::_render = false;
     State state = Allocate();
@@ -217,18 +217,16 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
 
   void Step(const Action& action) override {
     std::random_device rd;
-    State state = Allocate();
     // std::cout << 1;
     std::uniform_real_distribution<> powerdis(-100.0, 200.0);
     std::uniform_real_distribution<> angledis(-30.0, 30.0);
     // state["reward"_] = 0.0d;
     std::mt19937 gen(rd());
+    float reward = 0;
     if (_inter == 0) {
+      curling::step({{action["action"_][0], action["action"_][1]}});
       auto [ta, tb, tc, td] =
           curling::step({{action["action"_][0], action["action"_][1]}});
-      state["reward"_] = 0.0f;
-      state["info:curteam"_] = current_team;
-      state["info:release"_] = release;
       // _inter = trans[_inter][current_team];
       // PushStack(false, false);
     }
@@ -238,6 +236,7 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
         curling::step({{0, 0}});
         // std::cout << step_cnt << std::endl;
       }
+      reward = 10;
     }
     // std::cout << "finish one " << std::endl;
     if (current_team == 1) {
@@ -248,9 +247,14 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
       }
       done_ = true;
       // std::cout << temp_winner;
-      state["reward"_] = temp_winner == 0 ? 1.0f : 0.0f;
+      if (reward >= 0) {
+        reward += temp_winner == 0 ? 90.0f : 0.0f;
+      }
     }
-
+    State state = Allocate();
+    state["info:curteam"_] = current_team;
+    state["info:release"_] = release;
+    state["reward"_] = reward;
     WriteObs(state);
   }
 

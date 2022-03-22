@@ -50,8 +50,7 @@ action_num=4
 # train_envs = ts.env.SubprocVectorEnv([lambda:EmitWrapper(make("olympics-curling")) for _ in range(10)])
 # test_envs = ts.env.SubprocVectorEnv([lambda:EmitWrapper(make("olympics-curling")) for _ in range(100)])
 import envpool
-train_envs = envpool.make_gym("Curling-v1", num_envs=100)
-test_envs = envpool.make_gym("Curling-v1", num_envs=20)
+game = envpool.make_gym("Curling-v1", num_envs=1)
 
 import torch, numpy as np
 from torch import nn
@@ -119,40 +118,17 @@ test_processor = MyProcessor(size=100)
 def MultivariateNormaldis(loc):# type: ignore
     return Normal(loc,torch.exp(torch.tensor(-.5)))
 net = CnnPolicy()
-crt=CnnValue()
-for m in net.model.modules():
-    if isinstance(m, torch.nn.Linear):
-        torch.nn.init.orthogonal_(m.weight)
-        torch.nn.init.zeros_(m.bias)
-
-for m in crt.model.modules():
-    if isinstance(m, torch.nn.Linear):
-        torch.nn.init.orthogonal_(m.weight)
-        torch.nn.init.zeros_(m.bias)
 
 
-optim = torch.optim.Adam(list(net.parameters()) + list(crt.parameters()), lr=1e-4)
-policy = ts.policy.PPOPolicy(net,crt, optim,MultivariateNormaldis,advantage_normalization=False, discount_factor=0.1,action_space =spaces.Box( np.array([-100,-30]), np.array([200,30])),action_bound_method="tanh")
-train_collector = ts.data.Collector(policy, train_envs, ts.data.VectorReplayBuffer(200000, 100), exploration_noise=True,preprocess_fn=test_processor.preprocess_fn)
-test_collector = ts.data.Collector(policy, test_envs, preprocess_fn=test_processor.preprocess_fn)
+net.load_state_dict(torch.load('dqn.pth'))
 
-trainer =ts.trainer.OnpolicyTrainer(
-    policy, train_collector, None,
-    max_epoch=1000, step_per_epoch=500, step_per_collect=100,
-    repeat_per_collect=2, episode_per_test=20, batch_size=256,
-    stop_fn=lambda mean_rewards: mean_rewards >= 0.6,logger=logger)
-for epoch, epoch_stat, info in trainer:
-    print("Epoch:", epoch)
-    print(epoch_stat)
-    print(info)
+obs = train_envs.reset()
+done = False
+step = 0
 
-# result = ts.trainer.onpolicy_trainer(
-#     policy, train_collector, test_collector,
-#     max_epoch=10, step_per_epoch=10000, step_per_collect=10,
-#     repeat_per_collect=2, episode_per_test=100, batch_size=64,
-#     # train_fn=lambda epoch, env_step: policy.set_eps(0.1),
-#     # test_fn=lambda epoch, env_step: policy.set_eps(0.05),
-#     stop_fn=lambda mean_rewards: mean_rewards >= 0.5)
-# print(f'Finished training! Use {result["duration"]}')
-# print(result)
-torch.save(policy.state_dict(), 'dqn.pth')
+while not done:
+    step += 1
+    action=policy.actor._distribution([obs]).sample()
+    obs, reward, done, _ = game.step(action)
+    # plt.imshow(obs[0])
+    # plt.show()

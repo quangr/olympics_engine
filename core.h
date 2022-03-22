@@ -166,7 +166,8 @@ class OlympicsBase {
             {current_agent_idx,
              map.objects[target_wall_idx]->getattr(collision_wall_target), 0});
     } else {
-      throw std::runtime_error("not implemented");
+      std::cout << "not implemented 10";
+      abort();
     }
   }
 
@@ -289,7 +290,8 @@ class curling : public OlympicsBase {
       new_agent_color = green;
       num_green += 1;
     } else {
-      throw std::runtime_error("not implemented");
+      std::cout << "not implemented 11";
+      abort();
     }
     agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
     agent_init_pos[agent_init_pos.size() - 1] = start_pos;
@@ -321,8 +323,10 @@ class curling : public OlympicsBase {
         purple_dis.push_back(distance);
       else if (agent.color == green)
         green_dis.push_back(distance);
-      else
-        throw std::runtime_error("not implemented");
+      else {
+        std::cout << "not implemented 12";
+        abort();
+      }
 
       // raise NotImplementedError
       if (distance < min_dist) {

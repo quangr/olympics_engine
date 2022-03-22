@@ -218,6 +218,7 @@ struct wall_t : component_t {
   double _endpoint_collision_time(point2 pos, point2 v, double radius,
                                   point2 endpoint) {
     auto deno = v[0] * v[0] + v[1] * v[1];
+    if (deno == 0) return -1;
     auto k =
         ((pos[0] - endpoint[0]) * v[0] + (pos[1] - endpoint[1]) * v[1]) / deno;
     auto c =
@@ -239,8 +240,10 @@ struct wall_t : component_t {
         tl = -1;
       else if (t1 >= 0 && t2 < 0)
         tl = t1;
-      else
-        throw std::runtime_error("not implemented");
+      else {
+        std::cout << "not implemented 13";
+        abort();
+      }
 
       // std::cout << ("endpoint collision time error");
     }
@@ -249,7 +252,8 @@ struct wall_t : component_t {
   point2 getattr(Target t) {
     if (t == Target::l1) return l1;
     if (t == Target::l2) return l2;
-    throw std::runtime_error("not implemented");
+    std::cout << "not implemented 14";
+    abort();
     // panic
   };
 
@@ -278,7 +282,8 @@ struct wall_t : component_t {
       vx_new = v[0] - factor * n[0];
       vy_new = v[1] - factor * n[1];
     } else {
-      throw std::runtime_error("not implemented");
+      std::cout << "not implemented 15";
+      abort();
       //  raise NotImplementedError("collision response error")
     }
     auto col_x = pos[0] + v[0] * t;
@@ -377,7 +382,10 @@ struct arc_t : component_t {
   double R;
   std::vector<double> init_pos;
   point2 center;
-  point2 getattr(Target t) { throw std::runtime_error("not implemented"); };
+  point2 getattr(Target t) {
+    std::cout << "not implemented 16";
+    abort();
+  };
 
   std::tuple<point2, point2> collision_response(point2 pos, point2 v, double r,
                                                 Target col_target, double t,
