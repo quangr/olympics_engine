@@ -174,7 +174,7 @@ class OlympicsBase {
  public:
   int step_cnt = 0;
   obslist_t obs_list;
-  OlympicsBase();
+  OlympicsBase(std::string mappath);
   obslist_t get_obs();
 };
 
@@ -370,7 +370,7 @@ class curling : public OlympicsBase {
   int cur_ball = 0;
   bool release = false;
   int current_team;
-  curling() {
+  curling(std::string mappath) : OlympicsBase(mappath) {
     wall_restitution = 1;
     circle_restitution = 1;
   };

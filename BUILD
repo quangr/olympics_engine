@@ -80,21 +80,6 @@ py_binary(
     ]
 )
 
-py_binary(
-    name = "test_model",
-    srcs = ["train/test_model.py"],
-    deps = [
-        ":classic_control",
-        requirement("numpy"),
-        requirement("absl-py"),
-        requirement("pygame"),
-        requirement("matplotlib"),
-        requirement("opencv-python-headless"),
-        requirement("ptvsd"),
-        requirement("torch"),
-        requirement("tianshou"),
-    ]
-)
 
 
 py_library(

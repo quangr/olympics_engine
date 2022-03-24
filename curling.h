@@ -31,9 +31,13 @@ typedef Spec<uint8_t> FrameSpec;
 class CurlingEnvFns {
  public:
   static decltype(auto) DefaultConfig() {
-    return MakeDict("max_episode_steps"_.bind(2000),
-                    "reward_threshold"_.bind(195.0), "img_height"_.bind(30),
-                    "img_width"_.bind(30), "stack_num"_.bind(2));
+    return MakeDict(
+        "max_episode_steps"_.bind(2000),
+        "path"_.bind(std::string(
+            "/app/envpool/classic_control/testhelper/scenario.json")),
+
+        "reward_threshold"_.bind(195.0), "img_height"_.bind(30),
+        "img_width"_.bind(30), "stack_num"_.bind(2));
   }
   template <typename Config>
   static decltype(auto) StateSpec(const Config& conf) {
@@ -65,7 +69,7 @@ class CurlingEnv : public Env<CurlingEnvSpec>, public curling {
  public:
   CurlingEnv(const Spec& spec, int env_id)
       : Env<CurlingEnvSpec>(spec, env_id),
-        curling(),
+        curling(spec.config["path"_]),
         stack_num_(spec.config["stack_num"_]),
         done_(true),
         raw_spec_({30, 30}),
@@ -156,13 +160,15 @@ typedef AsyncEnvPool<CurlingEnv> CurlingEnvPool;
 class CurlingSimpleEnvFns {
  public:
   static decltype(auto) DefaultConfig() {
-    return MakeDict("max_episode_steps"_.bind(2000),
-                    "reward_threshold"_.bind(195.0), "img_height"_.bind(30),
-                    "img_width"_.bind(30), "stack_num"_.bind(2));
+    return MakeDict(
+        "path"_.bind(std::string(
+            "/app/envpool/classic_control/testhelper/scenario.json")),
+        "max_episode_steps"_.bind(2000), "reward_threshold"_.bind(195.0),
+        "img_height"_.bind(30), "img_width"_.bind(30), "stack_num"_.bind(2));
   }
   template <typename Config>
   static decltype(auto) StateSpec(const Config& conf) {
-    return MakeDict("obs"_.bind(Spec<double>({4})),
+    return MakeDict("obs"_.bind(Spec<double>({7})),
                     "info:release"_.bind(Spec<bool>({1})),
                     "info:curteam"_.bind(Spec<int>({1})));
   }
@@ -181,16 +187,19 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
   std::vector<Array> maxpool_buf_;
   FrameSpec raw_spec_, resize_spec_, transpose_spec_;
   int trans[3][2] = {{0, 1}, {2, 1}, {2, 2}}, _inter = 0;
+  double dist_ = 250;
+  double norm_ = 100;
+  double angle_ = 0;
 
  public:
   CurlingSimpleEnv(const Spec& spec, int env_id)
       : Env<CurlingSimpleEnvSpec>(spec, env_id),
-        curling(),
+        curling(spec.config["path"_]),
         stack_num_(spec.config["stack_num"_]),
         done_(true),
-        raw_spec_({4}),
-        resize_spec_({4}),
-        transpose_spec_({4}) {
+        raw_spec_({7}),
+        resize_spec_({7}),
+        transpose_spec_({7}) {
     // for (int i = 0; i < 2; ++i) {
     //   maxpool_buf_.push_back(std::move(Array(raw_spec_)));
     // }
@@ -202,8 +211,22 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
   bool IsDone() override { return done_; }
 
   void Reset() override {
+    std::random_device rd;
+    // std::cout << 1;
+    std::uniform_real_distribution<> dist(200.0, 300.0);
+    std::uniform_real_distribution<> vnorm(0.0, 220.0);
+    std::uniform_real_distribution<> vtan(-.7, .7);
+    // state["reward"_] = 0.0d;
+    std::mt19937 gen(rd());
+
     // WONDERWHY
     // auto&& a = curling::reset(true);
+    dist_ = dist(gen);
+    // norm_ = vnorm(gen);
+    // angle_ = vtan(gen);
+    // dist_ = 250;
+    norm_ = 200;
+    angle_ = 0;
     curling::reset();
     done_ = false;
     curling::_render = false;
@@ -223,39 +246,51 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
     // state["reward"_] = 0.0d;
     std::mt19937 gen(rd());
     float reward = 0;
-    if (_inter == 0) {
-      curling::step({{action["action"_][0], action["action"_][1]}});
-      auto [ta, tb, tc, td] =
-          curling::step({{action["action"_][0], action["action"_][1]}});
-      // _inter = trans[_inter][current_team];
-      // PushStack(false, false);
-    }
+    bool notfinish = false;
+    double tpos0 = 0, tpos1 = 0, tv0 = 0, tv1 = 0;
+    curling::step({{action["action"_][0], action["action"_][1]}});
+    // auto [ta, tb, tc, td] =
+    //     curling::step({{action["action"_][0], action["action"_][1]}});
+    // _inter = trans[_inter][current_team];
+    // PushStack(false, false);
+    if (agent_v[0][1] > 0)
+      reward = 10000 /
+               std::sqrt((agent_pos[0][1] - dist_) * (agent_pos[0][1] - dist_) +
+                         (agent_pos[0][0] - 300) * (agent_pos[0][0] - 300)) /
+               ((step_cnt + 10));
+    else
+      reward = -500;
     if (release) {
-      while (current_team != 1) {
-        curling::_render = false;
-        curling::step({{0, 0}});
-        // std::cout << step_cnt << std::endl;
-      }
-      reward = 10;
+      // std::cout << agent_pos[0][0] << std::endl;
+      // std::cout << agent_pos[0][1] << std::endl;
+      // std::cout << agent_v[0].norm() << std::endl;
+      // std::cout << agent_v[0][0] << std::endl;
+      // std::cout << agent_v[0][1] << std::endl;
+      reward += 5000 / ((agent_pos[0][1] - dist_) * (agent_pos[0][1] - dist_));
+      reward +=
+          10000 / (((agent_v[0].norm() - norm_) * (agent_v[0].norm() - norm_) +
+                    (agent_v[0][1] * angle_ - agent_v[0][0]) *
+                        (agent_v[0][1] * angle_ - agent_v[0][0]) / 10.0));
+      done_ = true;
+    }
+    if (current_team == 1) {
+      done_ = true;
+      notfinish = true;
     }
     // std::cout << "finish one " << std::endl;
-    if (current_team == 1) {
-      while (current_team != 0) {
-        curling::_render = false;
-        curling::step({{powerdis(gen), angledis(gen)}});
-        // std::cout << step_cnt << std::endl;
-      }
-      done_ = true;
-      // std::cout << temp_winner;
-      if (reward >= 0) {
-        reward += temp_winner == 0 ? 90.0f : 0.0f;
-      }
-    }
     State state = Allocate();
+    WriteObs(state);
     state["info:curteam"_] = current_team;
     state["info:release"_] = release;
+    if (done_) {
+      if (notfinish) {
+        state["obs"_][0] = -1.0;
+        state["obs"_][1] = -1.0;
+        state["obs"_][2] = -1.0;
+        state["obs"_][3] = -1.0;
+      }
+    }
     state["reward"_] = reward;
-    WriteObs(state);
   }
 
  private:
@@ -288,6 +323,9 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
     state["obs"_][1] = agent_pos[cur_ball][1];
     state["obs"_][2] = agent_v[cur_ball][0];
     state["obs"_][3] = agent_v[cur_ball][1];
+    state["obs"_][4] = dist_;
+    state["obs"_][5] = norm_;
+    state["obs"_][6] = angle_;
 
     // for (int i = 0; i < stack_num_; ++i) {
     //   state["obs"_].Slice(i, i + 1).Assign(stack_buf_[i]);

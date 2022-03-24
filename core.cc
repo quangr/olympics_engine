@@ -121,8 +121,8 @@ bool check_radian(double start_radian, double end_radian, double angle) {
 }  // namespace helperfunction
 void readjson(std::string filename, map_t& map);
 
-OlympicsBase::OlympicsBase() {
-  readjson("/app/envpool/classic_control/testhelper/scenario.json", map);
+OlympicsBase::OlympicsBase(std::string mappath) {
+  readjson(mappath, map);
   generate_map(map);
   merge_map();
   this->view_setting = map.view;

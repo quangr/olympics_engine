@@ -13,7 +13,9 @@ act_space = env0.action_space
 # action = np.array([ for _ in range(num_envs)])
 print(act_space)
 for i in range(150):
-    print(f"step {i}")
+    # print(f"step {i}")
+    # a,b,c,d=env0.step(np.array([[np.random.rand()*200,np.random.rand()*60-30] for _ in range(1)]))
     a,b,c,d=env0.step(np.array([[200,0] for _ in range(1)]))
-    if(b==1):
-        print(a,b,c,d)
+    if(b!=0):
+        print(b)
+    print(a,b,c,d)
