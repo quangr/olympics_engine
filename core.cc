@@ -861,6 +861,7 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
         cur_ball = agent_idx;
         action[agent_idx] = actions_list[0];
         actions_list.pop_front();
+        action[agent_idx] = {0, 0};
       }
     }
   }
