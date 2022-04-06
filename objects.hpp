@@ -185,12 +185,11 @@ struct agent_t : object_t, InternalState {
   virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
-    for (size_t i = 0; i < obs_size; i++) {
+    for (int i = 0; i < obs_size; i++) {
       auto x = agent.r + visibility - v_clear * i - v_clear / 2;
-      for (size_t j = 0; j < obs_size; j++) {
+      for (int j = 0; j < obs_size; j++) {
         if (obs_map(i, j) > 0) continue;
         auto y = visibility / 2 - v_clear * j - v_clear / 2;
-        auto point = point2(x, y);
         if (obs_map(i, j) > 0) continue;
         auto idx = temp_idx;
         auto vec_bc_ = point2(x - agent_self.to_another_agent_rotated[idx][0],
@@ -327,13 +326,12 @@ struct wall_t : component_t {
   virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
-    for (size_t i = 0; i < obs_size; i++) {
+    for (int i = 0; i < obs_size; i++) {
       auto x = agent.r + visibility - v_clear * i - v_clear / 2;
-      for (size_t j = 0; j < obs_size; j++) {
+      for (int j = 0; j < obs_size; j++) {
+        if (obs_map(i, j) > 0) continue;
         auto y = visibility / 2 - v_clear * j - v_clear / 2;
         auto point = point2(x, y);
-        if (obs_map(i, j) > 0) continue;
-
         auto distance = abs(
             helperfunction::get_distance(cur_pos_rotated, point, length, true));
         if (distance <= v_clear) obs_map(i, j) = color;
@@ -426,12 +424,12 @@ struct arc_t : component_t {
       else if (end_radian >= 0 && end_radian < start_radian)
 
         return !(start_radian < angle && angle < end_radian);
-      else if (end_radian <= 0)
-
+      else if (end_radian <= 0) {
         if (angle >= 0 && angle > start_radian)
           return true;
         else
           return (angle < 0 && angle < end_radian);
+      }
     } else {
       if (end_radian >= 0)
 
@@ -471,9 +469,9 @@ struct arc_t : component_t {
   virtual void update_obs_map(rawimage_t& obs_map, int obs_size,
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
-    for (size_t i = 0; i < obs_size; i++) {
+    for (int i = 0; i < obs_size; i++) {
       auto x = agent.r + visibility - v_clear * i - v_clear / 2;
-      for (size_t j = 0; j < obs_size; j++) {
+      for (int j = 0; j < obs_size; j++) {
         if (obs_map(i, j) > 0) continue;
 
         auto y = visibility / 2 - v_clear * j - v_clear / 2;
@@ -515,15 +513,18 @@ struct map_t : map_view_t {
     for (auto i : objects) delete i;
   };
   map_t& operator=(const map_t& rhs) {
-    for (auto iter : objects) {
-      delete iter;
+    if (this != &rhs) {
+      for (auto iter : objects) {
+        delete iter;
+      }
+      objects.clear();
+      for (auto iter : rhs.objects) {
+        objects.push_back(iter->copy());
+      }
+      view = rhs.view;
+      agents = rhs.agents;
     }
-    objects.clear();
-    for (auto iter : rhs.objects) {
-      objects.push_back(iter->copy());
-    }
-    view = rhs.view;
-    agents = rhs.agents;
+    return (*this);
   }
   map_t(const map_t&) = delete;
 };

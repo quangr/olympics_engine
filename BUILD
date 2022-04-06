@@ -12,7 +12,7 @@ cc_library(
         "//envpool/core:async_envpool",
          "@pybind11",
     ],
-    copts=["-gdwarf-2"],
+#    copts=["-gdwarf-2"],
 )
 
 pybind_extension(

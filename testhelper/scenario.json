@@ -67,7 +67,7 @@
             ]
           ],
           "color": "grey",
-          "ball_pass": true
+          "ball_pass": "True"
         }
       }
     },
@@ -523,7 +523,7 @@
           ],
           "start_radian": 90,
           "end_radian": -90,
-          "passable": true,
+          "passable": "True",
           "color": "blue",
           "collision_mode": 0,
           "width": 5
@@ -537,7 +537,7 @@
           ],
           "start_radian": -90,
           "end_radian": 90,
-          "passable": true,
+          "passable": "True",
           "color": "blue",
           "collision_mode": 0,
           "width": 5
@@ -742,7 +742,7 @@
           ],
           "start_radian": 90,
           "end_radian": 180,
-          "passable": true,
+          "passable": "True",
           "color": "blue",
           "collision_mode": 3,
           "width": 5
@@ -756,7 +756,7 @@
           ],
           "start_radian": -180,
           "end_radian": -90,
-          "passable": true,
+          "passable": "True",
           "color": "blue",
           "collision_mode": 3,
           "width": 5
@@ -770,7 +770,7 @@
           ],
           "start_radian": -90,
           "end_radian": 0,
-          "passable": true,
+          "passable": "True",
           "color": "blue",
           "collision_mode": 3,
           "width": 5
@@ -784,7 +784,7 @@
           ],
           "start_radian": 0,
           "end_radian": 90,
-          "passable": true,
+          "passable": "True",
           "color": "blue",
           "collision_mode": 3,
           "width": 5
@@ -930,7 +930,7 @@
           ],
           "start_radian": 90,
           "end_radian": -90,
-          "passable": true,
+          "passable": "True",
           "color": "red",
           "collision_mode": 0,
           "width": 20
@@ -944,7 +944,7 @@
           ],
           "start_radian": -90,
           "end_radian": 90,
-          "passable": true,
+          "passable": "True",
           "color": "red",
           "collision_mode": 0,
           "width": 20
@@ -958,7 +958,7 @@
           ],
           "start_radian": 90,
           "end_radian": -90,
-          "passable": true,
+          "passable": "True",
           "color": "sky blue",
           "collision_mode": 0,
           "width": 20
@@ -972,7 +972,7 @@
           ],
           "start_radian": -90,
           "end_radian": 90,
-          "passable": true,
+          "passable": "True",
           "color": "sky blue",
           "collision_mode": 0,
           "width": 20
@@ -986,11 +986,11 @@
           "initial_position": [
             [
               100,
-              300
+              350
             ],
             [
               500,
-              300
+              350
             ]
           ],
           "color": "red"

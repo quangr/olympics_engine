@@ -106,7 +106,7 @@ class OlympicsBase {
   void update_all(std::vector<point2>& pos_container,
                   std::vector<point2>& v_container, double t,
                   std::vector<point2> a) {
-    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       auto accel_x = a[agent_idx][0], accel_y = a[agent_idx][1];
 
       auto pos_old = pos_container[agent_idx];
@@ -135,7 +135,7 @@ class OlympicsBase {
   void update_other(std::vector<point2>& pos_container,
                     std::vector<point2>& v_container, double t,
                     std::unordered_set<int> already_updated) {
-    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       if (already_updated.count(agent_idx)) continue;
 
       auto old_pos = pos_container[agent_idx];
@@ -196,12 +196,10 @@ class curling : public OlympicsBase {
   int round_step, game_round, num_purple, num_green, purple_game_point,
       green_game_point;
   void cross_detect() {
-    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       auto& agent = agent_list[agent_idx];
       if (agent.is_ball) continue;
-      for (size_t object_idx = 0; object_idx < map.objects.size();
-           object_idx++) {
-        auto object = map.objects[object_idx];
+      for (auto object : map.objects) {
         if (!object->can_pass)
           continue;
         else {
@@ -246,7 +244,7 @@ class curling : public OlympicsBase {
 
     // #agent_idx = -1
     bool L = true;
-    for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
+    for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       if ((!agent_list[agent_idx].alive) &&
           ((agent_v[agent_idx][0] * agent_v[agent_idx][0] +
             agent_v[agent_idx][1] * agent_v[agent_idx][1]) < 1e-1))

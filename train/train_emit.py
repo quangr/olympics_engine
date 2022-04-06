@@ -1,3 +1,4 @@
+import numpy as np
 import ptvsd
 ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
 print('Now is a good time to attach your debugger: Run: Python: Attach')
@@ -6,7 +7,6 @@ from typing import Dict,Union
 import gym
 import tianshou as ts
 import envpool
-import numpy as np
 from collections import deque
 from tianshou.data import Batch, ReplayBuffer
 import gym.spaces as spaces
@@ -69,7 +69,7 @@ def plotgif(test_collector):# type: ignore
 # train_envs = ts.env.SubprocVectorEnv([lambda:EmitWrapper(make("olympics-curling")) for _ in range(10)])
 # test_envs = ts.env.SubprocVectorEnv([lambda:EmitWrapper(make("olympics-curling")) for _ in range(100)])
 import envpool
-train_envs = envpool.make_gym("Curling-v1", num_envs=4000)
+train_envs = envpool.make_gym("Curling-v1", num_envs=150)
 test_envs = envpool.make_gym("Curling-v1", num_envs=1)
 
 import torch, numpy as np
@@ -86,7 +86,7 @@ class CnnPolicy(nn.Module):
             nn.ReLU(),
             nn.Linear(128,128),
             nn.ReLU(),
-            nn.Linear(128,88)
+            nn.Linear(128,48)
         ).to(device)
         # self.anglemodel=nn.Sequential(
         #     nn.Flatten(),
@@ -106,9 +106,13 @@ class CnnValue(nn.Module):
         super().__init__()
         self.model=nn.Sequential(
             nn.Flatten(),
-            nn.Linear(7,20),
+            nn.Linear(7,128),
             nn.ReLU(),
-            nn.Linear(20,1)
+            nn.Linear(128,128),
+            nn.ReLU(),
+            nn.Linear(128,128),
+            nn.ReLU(),
+            nn.Linear(128,1)
         ).to(device)
     def forward(self,input:torch.Tensor)->torch.Tensor:
         return self.model(torch.tensor(input,dtype=torch.float32,device=device))
@@ -150,7 +154,7 @@ for m in crt.model.modules():
         torch.nn.init.zeros_(m.bias)
 
 actions_one_map=list(range(-100,200,40))
-actions_two_map=list(range(-30,31,6))
+actions_two_map=list(range(-30,31,12))
 len1=len(actions_one_map)
 len2=len(actions_two_map)
 action_num=len1*len2
@@ -160,14 +164,14 @@ class mypolicy(ts.policy.PPOPolicy):
         myaction=np.array([[actions_one_map[i] for i in act//len2],[actions_two_map[i] for i in act%len2]])
         return myaction.T
 
-optim = torch.optim.Adam(list(net.parameters()) + list(crt.parameters()), lr=1e-4)
+optim = torch.optim.Adam(list(net.parameters()) + list(crt.parameters()), lr=5*1e-5)
 policy = mypolicy(net,crt, optim,MultivariateNormaldis,advantage_normalization=False, discount_factor=0.1,action_space =spaces.Box( np.array([-50,-5]), np.array([200,5])),action_bound_method="tanh")
 train_collector = ts.data.Collector(policy, train_envs, ts.data.VectorReplayBuffer(200000, 4000), exploration_noise=True,preprocess_fn=test_processor.preprocess_fn)
 test_collector = ts.data.Collector(policy, test_envs, preprocess_fn=test_processor.preprocess_fn)
 
 trainer =ts.trainer.OnpolicyTrainer(
     policy, train_collector, None,
-    max_epoch=3000, step_per_epoch=500, step_per_collect=10,
+    max_epoch=3000, step_per_epoch=500, step_per_collect=8000,
     repeat_per_collect=2, episode_per_test=20, batch_size=8192,
     stop_fn=lambda mean_rewards: mean_rewards >= 0.6,logger=logger)
 for epoch, epoch_stat, info in trainer:
