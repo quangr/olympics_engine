@@ -211,7 +211,7 @@ class CurlingSimpleEnvFns {
   }
   template <typename Config>
   static decltype(auto) StateSpec(const Config& conf) {
-    return MakeDict("obs"_.bind(Spec<double>({7})),
+    return MakeDict("obs"_.bind(Spec<double>({6})),
                     "info:release"_.bind(Spec<bool>({1})),
                     "info:curteam"_.bind(Spec<int>({1})));
   }
@@ -229,9 +229,8 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
   std::deque<Array> stack_buf_;
   std::vector<Array> maxpool_buf_;
   FrameSpec raw_spec_, resize_spec_, transpose_spec_;
-  double dist_ = 250;
-  double norm_ = 100;
-  double angle_ = 0;
+  double dist_x_ = 350;
+  double dist_y_ = 400;
 
  public:
   CurlingSimpleEnv(const Spec& spec, int env_id)
@@ -242,9 +241,6 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
         raw_spec_({7}),
         resize_spec_({7}),
         transpose_spec_({7}) {
-    // for (int i = 0; i < 2; ++i) {
-    //   maxpool_buf_.push_back(std::move(Array(raw_spec_)));
-    // }
     for (int i = 0; i < stack_num_; ++i) {
       stack_buf_.push_back(Array(transpose_spec_));
     }
@@ -254,29 +250,23 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
 
   void Reset() override {
     std::random_device rd;
-    // std::cout << 1;
-    std::uniform_real_distribution<> dist(300.0, 420.0);
-    std::uniform_real_distribution<> vnorm(30.0, 200.0);
+    std::uniform_real_distribution<> dist_x(300.0, 350.0);
+    std::uniform_real_distribution<> dist_y(380.0, 600.0);
     std::uniform_real_distribution<> vtan(-.7, .7);
-    // state["reward"_] = 0.0d;
     std::mt19937 gen(rd());
-
-    // WONDERWHY
-    // auto&& a = curling::reset(true);
-    dist_ = dist(gen);
-    // dist_ = 250;
-    // norm_ = 200;
-    // angle_ = 0;
-    norm_ = vnorm(gen);
-    angle_ = vtan(gen);
+    dist_x_ = dist_x(gen);
+    dist_y_ = dist_y(gen);
     curling::reset();
+    agent_pos[0][0] = dist_x_;
+    agent_pos[0][1] = dist_y_;
+    curling::_reset_round();
+    cur_ball = 1;
     done_ = false;
     curling::_render = false;
     State state = Allocate();
     state["reward"_] = 0.0f;
     state["info:curteam"_] = 0;
     state["info:release"_] = false;
-    // PushStack(false, false);
     WriteObs(state);
   }
 
@@ -295,105 +285,52 @@ class CurlingSimpleEnv : public Env<CurlingSimpleEnvSpec>, public curling {
       curling::step({{action["action"_][movenum * 2],
                       action["action"_][movenum * 2 + 1]}});
     }
-    // auto [ta, tb, tc, td] =
-    //     curling::step({{action["action"_][0], action["action"_][1]}});
-    // _inter = trans[_inter][current_team];
-    // PushStack(false, false);
-    if (agent_pos[0][1] < 145) {
+    if (release) {
+      while (current_team != 0) {
+        curling::step({{0, 0}});
+      }
+      // std::cout << "agent0 color" << agent_list[0].color << std::endl;
+      // std::cout << "agent0 pos" << agent_pos[0][0] << "," << agent_pos[0][1]
+      //           << std::endl;
+      // std::cout << "agent1 color" << agent_list[1].color << std::endl;
+      // std::cout << "agent1 pos" << agent_pos[1][0] << "," << agent_pos[1][1]
+      //           << std::endl;
+      int temp = curling::current_winner();
+      if (temp == 1) reward = 5;
+      if (temp == 0) reward = -5;
       done_ = true;
-      reward = -10;
+    } else {
+      if (agent_pos[cur_ball][1] < 145 || agent_v[cur_ball][1] < 0 ||
+          round_step > 40) {
+        done_ = true;
+        reward = -10;
+      }
     }
 
-    if ((!release) && agent_v[0][1] > 0) {
-      reward = 100000 /
-               std::sqrt((agent_pos[0][0] - dist_) * (agent_pos[0][0] - dist_) +
-                         (agent_pos[0][1] - 350) * (agent_pos[0][1] - 350)) /
-               ((step_cnt + 5) * (step_cnt + 5) * (step_cnt + 5));
-    } else {
-      done_ = true;
-      reward = -10;
-    }
-    if (release) {
-      // std::cout << agent_pos[0][0] << std::endl;
-      // std::cout << agent_pos[0][1] << std::endl;
-      // std::cout << agent_v[0].norm() << std::endl;
-      // std::cout << agent_v[0][0] << std::endl;
-      // std::cout << agent_v[0][1] << std::endl;
-      // reward += 500 / ((agent_pos[0][0] - dist_) * (agent_pos[0][0] -
-      // dist_));
-      auto di = std::abs(agent_pos[0][0] - dist_);
-      auto ratio = 2 / (2 + std::sqrt(di));
-      reward += 100 * ratio;
-      // if (di < 10) {
-      //   if (agent_v[0].norm() > 50) {
-      //     auto vitdiff = std::abs(angle_ - (agent_v[0][0] /
-      //     agent_v[0].norm())); reward += 100 * (vitdiff < .1 ? 1 : 0.1 /
-      //     vitdiff) * ratio; if (vitdiff < .5) {
-      //       auto normdiff = std::abs(agent_v[0].norm() - norm_);
-      //       reward += 100 * (normdiff < 10 ? 1 : 10. / normdiff) * ratio;
-      //     }
-      //   }
-      // }
-      // 1000 / (((agent_v[0].norm() - norm_) * (agent_v[0].norm() - norm_) +
-      done_ = true;
-    }
-    if (current_team == 1) {
-      done_ = true;
-      notfinish = true;
-    }
-    // std::cout << "finish one " << std::endl;
     State state = Allocate();
     WriteObs(state);
     state["info:curteam"_] = current_team;
     state["info:release"_] = release;
-    if (done_) {
-      if (notfinish) {
-        state["obs"_][0] = -1.0;
-        state["obs"_][1] = -1.0;
-        state["obs"_][2] = -1.0;
-        state["obs"_][3] = -1.0;
-      }
-    }
     state["reward"_] = reward;
   }
 
  private:
   void PushStack(bool push_all, bool maxpool) {
     uint8_t* ptr = static_cast<uint8_t*>(obs_list.data());
-    // if (maxpool) {
-    //   uint8_t* ptr1 = static_cast<uint8_t*>(maxpool_buf_[1].data());
-    //   for (std::size_t i = 0; i < maxpool_buf_[0].size; ++i) {
-    //     ptr[i] = std::max(ptr[i], ptr1[i]);
-    //   }
-    // }
     stack_buf_.pop_front();
     stack_buf_.push_back(Array(transpose_spec_));
     stack_buf_[stack_buf_.size() - 1][0] = agent_pos[cur_ball][0];
     stack_buf_[stack_buf_.size() - 1][1] = agent_pos[cur_ball][1];
     stack_buf_[stack_buf_.size() - 1][2] = agent_v[cur_ball][0];
     stack_buf_[stack_buf_.size() - 1][3] = agent_v[cur_ball][1];
-
-    // if (push_all) {
-    //   for (auto& s : stack_buf_) {
-    //     uint8_t* ptr_s = static_cast<uint8_t*>(s.data());
-    //     if (ptr != ptr_s) {
-    //       memcpy(ptr_s, ptr, size);
-    //     }
-    //   }
-    // }
   };
   void WriteObs(State& state) {  // NOLINT
     state["obs"_][0] = agent_pos[cur_ball][0];
     state["obs"_][1] = agent_pos[cur_ball][1];
     state["obs"_][2] = agent_v[cur_ball][0];
     state["obs"_][3] = agent_v[cur_ball][1];
-    state["obs"_][4] = dist_;
-    state["obs"_][5] = norm_;
-    state["obs"_][6] = angle_;
-
-    // for (int i = 0; i < stack_num_; ++i) {
-    //   state["obs"_].Slice(i, i + 1).Assign(stack_buf_[i]);
-    // }
+    state["obs"_][4] = dist_x_;
+    state["obs"_][5] = dist_y_;
   }
 };
 

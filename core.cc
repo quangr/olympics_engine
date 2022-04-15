@@ -945,8 +945,8 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(-1.0, 1.0);
     // TODO should be random!
-    //  auto h_gamma = down_area_gamma + dis(gen) * 0.001;
-    auto h_gamma = down_area_gamma;
+    auto h_gamma = down_area_gamma + dis(gen) * 0.001;
+    // auto h_gamma = down_area_gamma;
     gamma = h_gamma;
   }
   // #return self.agent_pos, self.agent_v, self.agent_accel, self.agent_theta,

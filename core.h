@@ -193,8 +193,7 @@ class curling : public OlympicsBase {
   double vis = 300;
   double vis_clear = 10;
   double top_area_gamma, down_area_gamma;
-  int round_step, game_round, num_purple, num_green, purple_game_point,
-      green_game_point;
+  int game_round, num_purple, num_green, purple_game_point, green_game_point;
   void cross_detect() {
     for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       auto& agent = agent_list[agent_idx];
@@ -256,57 +255,6 @@ class curling : public OlympicsBase {
     return {L, 0};
   }
 
-  int current_winner() {
-    auto center = point2(300, 500);
-    auto min_dist = 1e4;
-    auto win_team = -1;
-    for (size_t i = 0; i < agent_list.size(); i++) {
-      auto agent = agent_list[i];
-      auto pos = agent_pos[i];
-      auto distance = (pos - center).norm();
-      if (distance < min_dist) {
-        win_team = agent.color == purple ? 0 : 1;
-        min_dist = distance;
-      }
-    }
-
-    return win_team;
-  }
-
-  obslist_t _reset_round() {
-    current_team = 1 - current_team;
-    // #convert last agent to ball
-    if (agent_list.size() != 0) {
-      agent_list[agent_list.size() - 1].to_ball();
-      agent_list[agent_list.size() - 1].alive = false;
-    }
-    Color new_agent_color;
-    if (current_team == 0) {
-      new_agent_color = purple;
-      num_purple += 1;
-    } else if (current_team == 1) {
-      new_agent_color = green;
-      num_green += 1;
-    } else {
-      std::cout << "not implemented 11";
-      abort();
-    }
-    agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
-    agent_init_pos[agent_init_pos.size() - 1] = start_pos;
-    auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
-    obs_boundary_init.push_back(new_boundary);
-    agent_num += 1;
-    agent_pos.push_back(start_pos);
-    agent_v.push_back({0, 0});
-    agent_accel.push_back({0, 0});
-    auto init_obs = start_init_obs;
-    agent_theta.push_back(init_obs);
-    // agent_record.push_back({start_pos});
-    release = false;
-    gamma = top_area_gamma;
-    round_step = 0;
-    return _render ? get_obs() : obs_list;
-  }
   void cal_game_point() {
     point2 center(300, 500);
     std::vector<double> purple_dis;
@@ -363,7 +311,57 @@ class curling : public OlympicsBase {
   }
 
  public:
-  int temp_winner;
+  obslist_t _reset_round() {
+    current_team = 1 - current_team;
+    // #convert last agent to ball
+    if (agent_list.size() != 0) {
+      agent_list[agent_list.size() - 1].to_ball();
+      agent_list[agent_list.size() - 1].alive = false;
+    }
+    Color new_agent_color;
+    if (current_team == 0) {
+      new_agent_color = purple;
+      num_purple += 1;
+    } else if (current_team == 1) {
+      new_agent_color = green;
+      num_green += 1;
+    } else {
+      std::cout << "not implemented 11";
+      abort();
+    }
+    agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
+    agent_init_pos[agent_init_pos.size() - 1] = start_pos;
+    auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
+    obs_boundary_init.push_back(new_boundary);
+    agent_num += 1;
+    agent_pos.push_back(start_pos);
+    agent_v.push_back({0, 0});
+    agent_accel.push_back({0, 0});
+    auto init_obs = start_init_obs;
+    agent_theta.push_back(init_obs);
+    // agent_record.push_back({start_pos});
+    release = false;
+    gamma = top_area_gamma;
+    round_step = 0;
+    return _render ? get_obs() : obs_list;
+  }
+  int current_winner() {
+    auto center = point2(300, 500);
+    auto min_dist = 1e4;
+    auto win_team = -1;
+    for (size_t i = 0; i < agent_list.size(); i++) {
+      auto agent = agent_list[i];
+      auto pos = agent_pos[i];
+      auto distance = (pos - center).norm();
+      if (distance < min_dist) {
+        win_team = agent.color == purple ? 0 : 1;
+        min_dist = distance;
+      }
+    }
+
+    return win_team;
+  }
+  int temp_winner, round_step;
   bool _render = true;
   int cur_ball = 0;
   bool release = false;
