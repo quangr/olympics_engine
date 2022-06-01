@@ -10,11 +10,18 @@ cc_library(
     deps = [
         "@eigen",
         "//envpool/core:async_envpool",
-         "@pybind11",
+        "@pybind11",
     ],
 #    copts=["-gdwarf-2"],
 )
-
+cc_binary(
+    name = "benchmark",
+    srcs = ["benchmark.cc"],
+    deps = [
+        ":curling",
+        "@com_google_benchmark//:benchmark_main",
+    ],
+)
 pybind_extension(
     name = "classic_control_envpool",
     srcs = [

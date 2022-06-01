@@ -13,12 +13,9 @@ class OlympicsBase {
   point2 action_f{-100, 200};
   point2 action_theta{-30, 30};
   int agent_num = 0;
-  std::vector<agent_t> agent_list;
   std::vector<point2> agent_init_pos;
-  std::vector<point2> agent_pos;
   std::vector<point2> agent_previous_pos;
   std::vector<point2> agent_v;
-  std::vector<point2> agent_accel;
   std::vector<double> agent_theta;
   // std::vector<std::vector<point2>> agent_record;
   std::unordered_map<point2, std::vector<int>> point2wall;
@@ -32,7 +29,7 @@ class OlympicsBase {
   ignore_t global_wall_ignore;
   ignore_t global_circle_ignore;
 
-  //   //  env hyper
+  //  env hyper
   double tau = 0.1;     // delta t
   double gamma = 0.98;  // v衰减系数
   double wall_restitution = 0.5;
@@ -172,6 +169,11 @@ class OlympicsBase {
   }
 
  public:
+  std::vector<point2> agent_pos;
+  std::vector<agent_t> agent_list;
+  std::vector<point2> agent_accel;
+
+  int player_num = 2;
   int step_cnt = 0;
   obslist_t obs_list;
   OlympicsBase(std::string mappath);
