@@ -1,0 +1,7 @@
+absl-py
+gym
+numpy
+pygame
+matplotlib
+ptvsd
+yep
