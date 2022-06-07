@@ -430,6 +430,7 @@ class curling : public OlympicsBase {
   }
   std::tuple<obslist_t, reward_t, bool, std::string> step(
       std::deque<std::vector<double>> actions_list);
+  static curling create(std::string mappath) { return curling(mappath); }
 };
 
 #endif

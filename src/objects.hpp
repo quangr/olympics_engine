@@ -1,4 +1,3 @@
-
 #include <math.h>
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
@@ -186,12 +185,12 @@ struct agent_t : object_t, InternalState {
                               double visibility, double v_clear, double theta,
                               const agent_t& agent, const agent_t& agent_self) {
     for (int i = 0; i < obs_size; i++) {
-      auto x = agent.r + visibility - v_clear * i - v_clear / 2;
+      double x = agent.r + visibility - v_clear * i - v_clear / 2;
       for (int j = 0; j < obs_size; j++) {
         if (obs_map(i, j) > 0) continue;
-        auto y = visibility / 2 - v_clear * j - v_clear / 2;
+        double y = visibility / 2 - v_clear * j - v_clear / 2;
         if (obs_map(i, j) > 0) continue;
-        auto idx = temp_idx;
+        int idx = temp_idx;
         auto vec_bc_ = point2(x - agent_self.to_another_agent_rotated[idx][0],
                               y - agent_self.to_another_agent_rotated[idx][1]);
         auto distance = vec_bc_.norm();

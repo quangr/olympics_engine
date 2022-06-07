@@ -111,7 +111,7 @@ void readjson(std::string filename, map_t& map) {
   // a JSON text
 
   if (!file) {
-    std::cout << "no such file";
+    std::cout << "no such file: "<<filename;
     exit(1);
     // operations on the buffer...
   }

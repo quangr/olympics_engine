@@ -22,9 +22,9 @@
 #include <tuple>
 #include <utility>
 
-TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase("testhelper/scenario.json"); }
+TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase("/home/quangr/olympics_engine/src/testhelper/scenario.json"); }
 TEST(CurlingTEST, TESTSTEP) {
-  curling c("testhelper/scenario.json");
+  curling c("/home/quangr/olympics_engine/src/testhelper/scenario.json");
   c.reset();
   std::random_device rd;
   std::mt19937 gen(rd());

@@ -14,21 +14,21 @@ cc_library(
     ],
 #    copts=["-gdwarf-2"],
 )
-cc_binary(
-    name = "benchmark",
-    srcs = ["benchmark.cc"],
-    deps = [
-        ":curling",
-        "@com_google_benchmark//:benchmark_main",
-    ],
-)
+# cc_binary(
+#     name = "benchmark",
+#     srcs = ["benchmark.cc"],
+#     deps = [
+#         ":curling",
+#         "@com_google_benchmark//:benchmark_main",
+#     ],
+# )
 pybind_extension(
     name = "classic_control_envpool",
     srcs = [
         "classic_control.cc"
     ],
     deps = [
-        "//envpool/core:py_envpool",
+        # "//envpool/core:py_envpool",
         ":curling",
     ]
 )
@@ -37,7 +37,7 @@ py_library(
     name = "classic_control",
     srcs = ["__init__.py"],
     data = [":classic_control_envpool.so"],
-    deps = ["//envpool/python:api"],
+    # deps = ["//envpool/python:api"],
 )
 
 py_test(
@@ -49,57 +49,57 @@ py_test(
         requirement("absl-py"),
         requirement("pygame"),
         requirement("matplotlib"),
-        requirement("opencv-python-headless"),
+        # requirement("opencv-python-headless"),
         requirement("ptvsd"),
     ],
     imports=[":classic_control_envpool.so"],
     data = [":classic_control_envpool.so"],
 )
 
-py_binary(
-    name = "train_emit",
-    srcs = ["train/train_emit.py"],
-    deps = [
-        "//envpool",
-        requirement("numpy"),
-        requirement("absl-py"),
-        requirement("pygame"),
-        requirement("matplotlib"),
-        requirement("opencv-python-headless"),
-        requirement("ptvsd"),
-        requirement("torch"),
-        requirement("tianshou"),
-    ]
-)
+# py_binary(
+#     name = "train_emit",
+#     srcs = ["train/train_emit.py"],
+#     deps = [
+#         "//envpool",
+#         requirement("numpy"),
+#         requirement("absl-py"),
+#         requirement("pygame"),
+#         requirement("matplotlib"),
+#         requirement("opencv-python-headless"),
+#         requirement("ptvsd"),
+#         requirement("torch"),
+#         requirement("tianshou"),
+#     ]
+# )
 
-py_binary(
-    name = "env_test",
-    srcs = ["env_test.py"],
-    deps = [
-        ":classic_control",
-        requirement("numpy"),
-        requirement("absl-py"),
-        requirement("pygame"),
-        requirement("matplotlib"),
-        requirement("opencv-python-headless"),
-        requirement("ptvsd"),
-        requirement("torch"),
-        requirement("tianshou"),
-    ]
-)
+# py_binary(
+#     name = "env_test",
+#     srcs = ["env_test.py"],
+#     deps = [
+#         ":classic_control",
+#         requirement("numpy"),
+#         requirement("absl-py"),
+#         requirement("pygame"),
+#         requirement("matplotlib"),
+#         requirement("opencv-python-headless"),
+#         requirement("ptvsd"),
+#         requirement("torch"),
+#         requirement("tianshou"),
+#     ]
+# )
 
 
 
-py_library(
-    name = "classic_control_registration",
-    srcs = ["registration.py"],
-    deps = [
-        "//envpool:registration",
-    ],
-)
+# py_library(
+#     name = "classic_control_registration",
+#     srcs = ["registration.py"],
+#     deps = [
+#         "//envpool:registration",
+#     ],
+# )
 
 cc_test(
-    name = "core_test_test",
+    name = "core_test",
     srcs = ["core_test.cc"],
     deps = [
         ":curling",

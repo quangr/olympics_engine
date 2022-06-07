@@ -13,11 +13,12 @@
 # limitations under the License.
 """Unit tests for classic control environments."""
 
+from ast import Num
 from tokenize import Double
-from typing import Any, Tuple,Callable
+from typing import Any, Tuple, Callable
 from unittest import result
-from PIL import Image
-
+# from PIL import Image
+import sys
 import numpy as np
 from absl.testing import absltest
 # import testhelper.core
@@ -27,27 +28,49 @@ from absl.testing import absltest
 # from testhelper.generator import create_scenario
 # import matplotlib.pyplot as plt
 # import cv2
-from envpool.classic_control import CurlingSimpleEnvSpec,CurlingSimpleGymEnvPool
+# from envpool.classic_control import CurlingSimpleEnvSpec,CurlingSimpleGymEnvPool
 # from envpool.classic_control import CurlingEnvSpec, _CurlingEnvPool
+import classic_control_envpool
+# from testhelper.viewer import Viewer
 
-class _ClassicControlEnvPoolTest(absltest.TestCase):
+# class Curling(classic_control_envpool.curling):
+#     def __init__(self)->None:
+#         self.display_mode = False
+#         self.viewer=Viewer(self.view_setting)
 
-  def testbuild(self)->None:
-    # import ptvsd
-    # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-    # print('Now is a good time to attach your debugger: Run: Python: Attach')
-    # ptvsd.wait_for_attach()
-    print("a")
-    # config = CurlingEnvSpec.gen_config(num_envs=1,max_episode_steps=200, seed=0)
-    # spec = CurlingEnvSpec(config)
-    # env0 = CurlingGymEnvPool(spec)
-    # a=env0.reset()
-    # print(a)
-    # act_space = env0.action_space
-    # # action = np.array([ for _ in range(num_envs)])
-    # print(act_space)
-    # a=env0.step(np.array([[12,2,2,2] for _ in range(1)]))
-    # print(a)
+#     def render(self)->None:
+#         if not self.display_mode:
+#             self.viewer.set_mode()
+#             self.display_mode = True
+
+
+class _RenderTest(absltest.TestCase):
+
+    def testrender(self) -> None:
+        a = classic_control_envpool.curling('/home/quangr/olympics_engine/src/testhelper/scenario.json')
+        print(a.map.view.width)
+
+
+# class _ClassicControlEnvPoolTest(absltest.TestCase):
+
+    # def testbuild(self) -> None:
+        # import ptvsd
+        # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+        # print('Now is a good time to attach your debugger: Run: Python: Attach')
+        # ptvsd.wait_for_attach()
+        # print("pythonpath: ", sys.executable)
+        # print("Python version: ", sys.version)
+        # classic_control_envpool.curling("")
+        # config = CurlingEnvSpec.gen_config(num_envs=1,max_episode_steps=200, seed=0)
+        # spec = CurlingEnvSpec(config)
+        # env0 = CurlingGymEnvPool(spec)
+        # a=env0.reset()
+        # print(a)
+        # act_space = env0.action_space
+        # # action = np.array([ for _ in range(num_envs)])
+        # print(act_space)
+        # a=env0.step(np.array([[12,2,2,2] for _ in range(1)]))
+        # print(a)
 #   # def run_space_check(self, spec_cls: Any) -> None:
 #   #   """Check if envpool.observation_space == gym.make().observation_space."""
 #   #   # TODO(jiayi): wait for #27
@@ -133,13 +156,13 @@ class _ClassicControlEnvPoolTest(absltest.TestCase):
 #     classic_control_envpool.check_radian,
 # testhelper.helperfunction.check_radian
 #     )
-    
+
 #   def test_rotate(self)->None:
 #     self.randomtest(lambda:[(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000],
 #     classic_control_envpool.rotate,
 # testhelper.helperfunction.rotate
 #     )
- 
+
 #   def test_rotate2(self)->None:
 #     self.randomtest(lambda:[(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000],
 #     classic_control_envpool.rotate2,
@@ -153,8 +176,7 @@ class _ClassicControlEnvPoolTest(absltest.TestCase):
 
 # class _GeneratorTest(absltest.TestCase):
 #   def test_readjson(self)->None:
-#       print(classic_control_envpool.readjson("/app/envpool/classic_control/testhelper/scenario.json"))        
-
+#       print(classic_control_envpool.readjson("/app/envpool/classic_control/testhelper/scenario.json"))
 
 
 # class _OlympicsBaseTest(absltest.TestCase):
@@ -162,7 +184,7 @@ class _ClassicControlEnvPoolTest(absltest.TestCase):
 #   def test_Build(self)->None:
 #     a=classic_control_envpool.OlympicsBase()
 #     my=np.array(a.get_obs()[0])
-    
+
 #     plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
 #     # print(testhelper.core.OlympicsBase(create_scenario("curling")).obs_list)
 #     self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
@@ -194,13 +216,13 @@ class _ClassicControlEnvPoolTest(absltest.TestCase):
 #   def run_align_check(self, env0: Any, env1: Any, reset_fn: Any,step:int=200) -> None:
 #     # import logging
 #     # from logging.handlers import RotatingFileHandler
-        
+
 #     # logging.basicConfig(handlers=[RotatingFileHandler(filename="/app/logs/align",
 #     #                     mode='w', maxBytes=512000, backupCount=4)], level=logging.INFO,
-#     #                     format='%(levelname)s %(asctime)s %(message)s', 
+#     #                     format='%(levelname)s %(asctime)s %(message)s',
 #     #                     datefmt='%m/%d/%Y%I:%M:%S %p')
-        
-#     # logger = logging.getLogger('my_logger')   
+
+#     # logger = logging.getLogger('my_logger')
 #     actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(step)]
 #     for i in range(step):
 #       # logger.info('This is a log message!')
@@ -228,6 +250,5 @@ class _ClassicControlEnvPoolTest(absltest.TestCase):
 #       # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
 
 
-
 if __name__ == "__main__":
-  absltest.main()
+    absltest.main()
