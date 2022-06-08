@@ -42,9 +42,18 @@ PYBIND11_MODULE(classic_control_envpool, m) {
       .def_readwrite("height", &view_t::height)
       .def_readwrite("edge", &view_t::edge)
       .def_readwrite("init_obs", &view_t::init_obs);
+  py::class_<object_t>(m, "object_t")
+      .def_readwrite("color", &object_t::color);
+  
+  py::class_<component_t,object_t>(m, "component_t")
+      .def_readwrite("cur_pos", &component_t::cur_pos)
+      .def_readwrite("cur_pos_rotated", &component_t::cur_pos_rotated);
       
+
   py::class_<map_view_t>(m, "map_view_t")
-      .def_readwrite("view", &map_view_t::view);
+      .def_readwrite("view", &map_view_t::view)
+      .def_readwrite("objects", &map_view_t::objects);
+
   py::class_<map_t,map_view_t>(m, "map_t");
   py::class_<curling>(m, "curling")
       .def(py::init<std::string>())
@@ -53,6 +62,6 @@ PYBIND11_MODULE(classic_control_envpool, m) {
       .def_readwrite("agent_pos", &curling::agent_pos)
       .def_readwrite("agent_accel", &curling::agent_accel)
       .def_readwrite("current_team", &curling::current_team)
-      .def_readwrite("map", &Publicist::map)
+      .def_readwrite("cmap", &Publicist::map)
       .def_readwrite("agent_list", &curling::agent_list);
 }
