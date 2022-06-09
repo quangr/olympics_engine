@@ -104,7 +104,7 @@ class Viewer():
         for i in range(len(pos_list)):
             t = pos_list[i]
             r = agent_list[i].r
-            color = IDX_TO_COLOR[int(agent_list[i].color)]
+            color = agent_list[i].color
             #print('color in viewer', color)
             pygame.draw.circle(self.background, COLORS[color], t, r, 0)
             pygame.draw.circle(self.background, COLORS['black'], t, 2, 2)

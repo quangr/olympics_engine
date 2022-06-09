@@ -1,19 +1,10 @@
-# Copyright 2021 Garena Online Private Limited
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#!/usr/bin/env python 
+#-*- coding: utf-8 -*-
+# mypy: ignore-errors
 """Unit tests for classic control environments."""
 
 from ast import Num
+from time import sleep
 from typing import Any, Tuple, Callable
 from unittest import result
 # from PIL import Image
@@ -31,70 +22,92 @@ import pygame
 # from envpool.classic_control import CurlingSimpleEnvSpec,CurlingSimpleGymEnvPool
 # from envpool.classic_control import CurlingEnvSpec, _CurlingEnvPool
 import classic_control_envpool
-from testhelper.viewer import Viewer,debug
+from testhelper.curling import curling,IDX_TO_COLOR
 
-class Curling(classic_control_envpool.curling):
-    def __init__(self)->None:
-        super(Curling, self).__init__("/home/quangr/olympics_engine/src/testhelper/scenario.json")
-        self.display_mode = False
-        self.map=create_scenario("curling")
-        self.viewer=Viewer(self.map["view"])
+@property
+def color(self):
+    return IDX_TO_COLOR[int(self._color)]
+@property
+def type(self):
+    if self.is_ball:
+        return "ball"
+    else:
+        return "agent"
 
-    def render(self)->None:
-        if not self.display_mode:
-            self.viewer.set_mode()
-            self.display_mode = True
-        self.viewer.draw_background()
-        for w in self.map["objects"]:
-            self.viewer.draw_map(w)
-        self.viewer.draw_ball(self.agent_pos, self.agent_list)
-        # if self.show_traj:
-        #     self.get_trajectory()
-        #     self.viewer.draw_trajectory(self.agent_record, self.agent_list)
-        # self.viewer.draw_direction(self.agent_pos, self.agent_accel)
-        #self.viewer.draw_map()
-
-        # if self.draw_obs:
-        #     self.viewer.draw_obs(self.obs_boundary, self.agent_list)
-        #     self.viewer.draw_view(self.obs_list, self.agent_list, leftmost_x=500, upmost_y=10)
-
-        #draw energy bar
-        #debug('agent remaining energy = {}'.format([i.energy for i in self.agent_list]), x=100)
-        # self.viewer.draw_energy_bar(self.agent_list)
-        debug('Agent 0', x=570, y=110)
-        debug('Agent 1', x=640, y=110)
-        # if self.map_num is not None:
-        #     debug('Map {}'.format(self.map_num), x=100)
-
-        # debug('mouse pos = '+ str(pygame.mouse.get_pos()))
-        # debug('Step: ' + str(self.step_cnt), x=30)
-        # if info is not None:
-        #     debug(info, x=100)
+classic_control_envpool.agent_t.color=color
+classic_control_envpool.agent_t.type=type
 
 
-        for event in pygame.event.get():
-            # 如果单击关闭窗口，则退出
-            if event.type == pygame.QUIT:
-                sys.exit()
-        pygame.display.flip()
+# class Curling(classic_control_envpool.curling):
+#     def __init__(self)->None:
+#         super(Curling, self).__init__("/home/quangr/olympics_engine/src/testhelper/scenario.json")
+#         self.display_mode = False
+#         self.map=create_scenario("curling")
+#         self.viewer=Viewer(self.map["view"])
+#         self.draw_obs=True
 
-class _RenderTest(absltest.TestCase):
+#     def render(self, info=None)->None:
+#         if not self.display_mode:
+#             self.viewer.set_mode()
+#             self.display_mode = True
+#         self.viewer.draw_background()
+#         for w in self.map["objects"]:
+#             self.viewer.draw_map(w)
+#         self.viewer.draw_ball(self.agent_pos, self.agent_list)
+#         # if self.show_traj:
+#         #     self.get_trajectory()
+#         #     self.viewer.draw_trajectory(self.agent_record, self.agent_list)
+#         # self.viewer.draw_direction(self.agent_pos, self.agent_accel)
+#         # self.viewer.draw_map()
 
-    def testrender(self) -> None:
-        a =Curling()
+#         if self.draw_obs:
+#             self.viewer.draw_obs(self.obs_boundary, self.agent_list)
+#             self.viewer.draw_view([self.obs_list], self.agent_list, leftmost_x=500, upmost_y=10)
+
+#         #draw energy bar
+#         #debug('agent remaining energy = {}'.format([i.energy for i in self.agent_list]), x=100)
+#         # self.viewer.draw_energy_bar(self.agent_list)
+#         debug('Agent 0', x=570, y=110)
+#         debug('Agent 1', x=640, y=110)
+#         # if self.map_num is not None:
+#         #     debug('Map {}'.format(self.map_num), x=100)
+
+#         # debug('mouse pos = '+ str(pygame.mouse.get_pos()))
+#         debug('Step: ' + str(self.step_cnt), x=30)
+#         if info is not None:
+#             debug(info, x=100)
+
+
+#         for event in pygame.event.get():
+#             # 如果单击关闭窗口，则退出
+#             if event.type == pygame.QUIT:
+#                 sys.exit()
+#         pygame.display.flip()
+
+# class _RenderTest(absltest.TestCase):
+
+#     def testrender(self) -> None:
+#         a =Curling()
+#         a.reset()
+#         while(True):
+#             a.render()
+#             f=a.step(np.array([[50,0]]))
+#             print(f)
+
+
+class _CurlingTest(absltest.TestCase):
+
+    def testbuild(self) -> None:
+        import ptvsd
+        ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+        print('Now is a good time to attach your debugger: Run: Python: Attach')
+        ptvsd.wait_for_attach()
+        a=curling(create_scenario("curling"))
+        print(a.reset())
+        # print(a.step([[200,0],[200,0]]))
         while(True):
-            a.render()
-            f=a.step(np.array([[200,0],[200,0]]))
-            print(f)
-
-
-# class _ClassicControlEnvPoolTest(absltest.TestCase):
-
-    # def testbuild(self) -> None:
-        # import ptvsd
-        # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-        # print('Now is a good time to attach your debugger: Run: Python: Attach')
-        # ptvsd.wait_for_attach()
+            # a.render()
+            f=a.step(np.array([[10,10],[10,10]]))
         # print("pythonpath: ", sys.executable)
         # print("Python version: ", sys.version)
         # classic_control_envpool.curling("")

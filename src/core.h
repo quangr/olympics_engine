@@ -2,21 +2,19 @@
 #define ENVPOOL_CURLING_CORE_ENV_H_
 #include <Eigen/Dense>
 #include <random>
+#include <vector>
 
 #include "objects.hpp"
 using point2 = Eigen::Vector2d;
 using mat2 = Eigen::Matrix2d;
 
-using obslist_t = Eigen::Matrix<uint8_t, -1, -1>;
+using obsmap_t = Eigen::Matrix<uint8_t, -1, -1>;
+using obslist_t = std::vector<Eigen::Matrix<uint8_t, -1, -1>>;
 class OlympicsBase {
- protected:
+protected:
   point2 action_f{-100, 200};
   point2 action_theta{-30, 30};
   int agent_num = 0;
-  std::vector<point2> agent_init_pos;
-  std::vector<point2> agent_previous_pos;
-  std::vector<point2> agent_v;
-  std::vector<double> agent_theta;
   // std::vector<std::vector<point2>> agent_record;
   std::unordered_map<point2, std::vector<int>> point2wall;
 
@@ -28,12 +26,6 @@ class OlympicsBase {
   //   std::vector<point2> map_object;
   ignore_t global_wall_ignore;
   ignore_t global_circle_ignore;
-
-  //  env hyper
-  double tau = 0.1;     // delta t
-  double gamma = 0.98;  // v衰减系数
-  double wall_restitution = 0.5;
-  double circle_restitution = 0.5;
 
   bool done = false;
   int max_step = 500;
@@ -51,27 +43,27 @@ class OlympicsBase {
   //   // generate_map(map)
   //   // merge_map()
 
-  view_t view_setting;  //   // map_num = None
+  view_t view_setting; //   // map_num = None
   bool display_mode = false;
   obslist_t reset();
 
   std::vector<point2> get_obs_boundaray(point2 init_position, double r,
                                         double visibility);
-  std::tuple<double, Target, int, int> bounceable_wall_collision_time(
-      std::vector<point2>, std::vector<point2>, double, ignore_t);
-  std::tuple<double, Target, int, int> circle_collision_time(
-      std::vector<point2>, std::vector<point2>, double, ignore_t);
+  std::tuple<double, Target, int, int>
+  bounceable_wall_collision_time(std::vector<point2>, std::vector<point2>,
+                                 double, ignore_t);
+  std::tuple<double, Target, int, int>
+  circle_collision_time(std::vector<point2>, std::vector<point2>, double,
+                        ignore_t);
 
-  void generate_map(const map_t& map);
+  void generate_map(const map_t &map);
   void merge_map();
-  void init_state();
-  void stepPhysics(std::vector<std::vector<double>> actions_list, int step,
-                   bool take_action);
-  std::vector<point2> actions_to_accel(
-      std::vector<std::vector<double>> actions_list);
-  std::tuple<point2, point2, point2, point2> CCD_circle_collision_f(
-      point2 old_pos1, point2 old_pos2, point2 old_v1, point2 old_v2, double r1,
-      double r2, double m1, double m2);
+  std::vector<point2>
+  actions_to_accel(std::vector<std::vector<double>> actions_list);
+  std::tuple<point2, point2, point2, point2>
+  CCD_circle_collision_f(point2 old_pos1, point2 old_pos2, point2 old_v1,
+                         point2 old_v2, double r1, double r2, double m1,
+                         double m2);
   double CCD_circle_collision(point2 old_pos1, point2 old_pos2, point2 old_v1,
                               point2 old_v2, double r1, double r2, double m1,
                               double m2);
@@ -81,14 +73,14 @@ class OlympicsBase {
                                                         double m1, double m2);
   void handle_wall(int target_wall_idx, Target col_target,
                    int current_agent_idx, double col_t,
-                   std::vector<point2>& pos_container,
-                   std::vector<point2>& v_container, double& remaining_t,
-                   ignore_t& ignore_wall_list);
+                   std::vector<point2> &pos_container,
+                   std::vector<point2> &v_container, double &remaining_t,
+                   ignore_t &ignore_wall_list);
   void handle_circle(int target_circle_idx, Target col_target,
                      int current_circle_idx, double col_t,
-                     std::vector<point2>& pos_container,
-                     std::vector<point2>& v_container, double& remaining_t,
-                     ignore_t& ignore_circle_list);
+                     std::vector<point2> &pos_container,
+                     std::vector<point2> &v_container, double &remaining_t,
+                     ignore_t &ignore_circle_list);
 
   std::tuple<point2, point2> wall_response(int target_idx, Target col_target,
                                            point2 pos, point2 v, double r,
@@ -100,8 +92,8 @@ class OlympicsBase {
     return {col_pos, col_v};
   }
 
-  void update_all(std::vector<point2>& pos_container,
-                  std::vector<point2>& v_container, double t,
+  void update_all(std::vector<point2> &pos_container,
+                  std::vector<point2> &v_container, double t,
                   std::vector<point2> a) {
     for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
       auto accel_x = a[agent_idx][0], accel_y = a[agent_idx][1];
@@ -111,11 +103,10 @@ class OlympicsBase {
 
       auto vx = v_old[0], vy = v_old[1];
       auto x = pos_old[0], y = pos_old[1];
-      auto x_new = x + vx * t;  // # update position with t
+      auto x_new = x + vx * t; // # update position with t
       auto y_new = y + vy * t;
       auto pos_new = point2(x_new, y_new);
-      auto vx_new =
-          gamma * vx + accel_x * tau;  //  # update v with acceleration
+      auto vx_new = gamma * vx + accel_x * tau; //  # update v with acceleration
       auto vy_new = gamma * vy + accel_y * tau;
 
       // #if vx_new ** 2 + vy_new ** 2 > self.max_speed_square:
@@ -129,11 +120,12 @@ class OlympicsBase {
     }
   };
 
-  void update_other(std::vector<point2>& pos_container,
-                    std::vector<point2>& v_container, double t,
+  void update_other(std::vector<point2> &pos_container,
+                    std::vector<point2> &v_container, double t,
                     std::unordered_set<int> already_updated) {
     for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
-      if (already_updated.count(agent_idx)) continue;
+      if (already_updated.count(agent_idx))
+        continue;
 
       auto old_pos = pos_container[agent_idx];
       auto old_v = v_container[agent_idx];
@@ -146,7 +138,7 @@ class OlympicsBase {
     }
   }
   void _add_wall_ignore(Target collision_wall_target, int current_agent_idx,
-                        int target_wall_idx, ignore_t& ignore_wall,
+                        int target_wall_idx, ignore_t &ignore_wall,
                         bool if_global = false) {
     if (collision_wall_target == wall || collision_wall_target == arc) {
       if (if_global)
@@ -163,25 +155,65 @@ class OlympicsBase {
             {current_agent_idx,
              map.objects[target_wall_idx]->getattr(collision_wall_target), 0});
     } else {
-      std::cout << "not implemented 10";
-      abort();
+      THROW(std::runtime_error, "not implemented error");
     }
   }
 
- public:
+public:
+  void init_state();
+  std::vector<point2> agent_init_pos;
+  std::vector<point2> agent_previous_pos;
+  std::vector<point2> agent_v;
+  std::vector<double> agent_theta;
   std::vector<point2> agent_pos;
   std::vector<agent_t> agent_list;
   std::vector<point2> agent_accel;
-
+  void stepPhysics(std::vector<std::vector<double>> actions_list, int step);
+  //  env hyper
+  double tau = 0.1;    // delta t
+  double gamma = 0.98; // v衰减系数
+  double wall_restitution = 0.5;
+  double circle_restitution = 0.5;
   int player_num = 2;
   int step_cnt = 0;
   obslist_t obs_list;
   OlympicsBase(std::string mappath);
   obslist_t get_obs();
+  void add_agent(int new_agent_color, point2 start_pos, double start_init_obs,
+                 double vis, double vis_clear) {
+    agent_list.push_back({1, 15, start_pos, Color(new_agent_color), vis, vis_clear});
+    agent_init_pos[agent_init_pos.size() - 1] = start_pos;
+    auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
+    obs_boundary_init.push_back(new_boundary);
+    agent_num += 1;
+    agent_pos.push_back(start_pos);
+    agent_v.push_back({0, 0});
+    agent_accel.push_back({0, 0});
+    auto init_obs = start_init_obs;
+    agent_theta.push_back(init_obs);
+  }
+  void clear_agent(){
+    agent_num = 0;
+    agent_list.clear();
+    agent_init_pos.clear();
+    agent_pos.clear();
+    agent_previous_pos.clear();
+    agent_v.clear();
+    agent_accel.clear();
+    agent_theta.clear();
+  }
+  void remove_agent(int index){
+    agent_num --;
+    agent_list.erase(agent_list.begin() + index);
+    agent_pos.erase(agent_pos.begin() + index);
+    agent_v.erase(agent_v.begin() + index);
+    agent_theta.erase(agent_theta.begin() + index);
+    agent_accel.erase(agent_accel.begin() + index);
+  }
 };
 
 class curling : public OlympicsBase {
- private:
+private:
   int final_winner;
   int round_countdown;
   bool print_log = false;
@@ -198,8 +230,9 @@ class curling : public OlympicsBase {
   int game_round, num_purple, num_green, purple_game_point, green_game_point;
   void cross_detect() {
     for (int agent_idx = 0; agent_idx < agent_num; agent_idx++) {
-      auto& agent = agent_list[agent_idx];
-      if (agent.is_ball) continue;
+      auto &agent = agent_list[agent_idx];
+      if (agent.is_ball)
+        continue;
       for (auto object : map.objects) {
         if (!object->can_pass)
           continue;
@@ -208,9 +241,9 @@ class curling : public OlympicsBase {
               object->check_cross(agent_pos[agent_idx], agent.r)) {
             agent.alive = false;
             // #agent.color = 'red'
-            gamma = down_area_gamma;  //   #this will change the gamma for the
-                                      //   whole env, so need to change if
-                                      //   dealing with multi-agent
+            gamma = down_area_gamma; //   #this will change the gamma for the
+                                     //   whole env, so need to change if
+                                     //   dealing with multi-agent
             release = true;
             round_countdown = round_max_step - round_step;
           }
@@ -220,7 +253,8 @@ class curling : public OlympicsBase {
   }
   bool is_terminal() {
     if (num_green + num_purple == max_n * 2) {
-      if ((!release) && round_step > round_max_step) return true;
+      if ((!release) && round_step > round_max_step)
+        return true;
 
       if (release) {
         bool L = true;
@@ -239,8 +273,8 @@ class curling : public OlympicsBase {
   }
   std::tuple<bool, int> _round_terminal() {
     if ((round_step > round_max_step) &&
-        (!release))  //      #after maximum round step the agent has not
-                     //      released yet
+        (!release)) //      #after maximum round step the agent has not
+                    //      released yet
       return {true, -1};
 
     // #agent_idx = -1
@@ -272,8 +306,7 @@ class curling : public OlympicsBase {
       else if (agent.color == green)
         green_dis.push_back(distance);
       else {
-        std::cout << "not implemented 12";
-        abort();
+        THROW(std::runtime_error, "not implemented error");
       }
 
       // raise NotImplementedError
@@ -312,7 +345,7 @@ class curling : public OlympicsBase {
     }
   }
 
- public:
+public:
   obslist_t _reset_round() {
     current_team = 1 - current_team;
     // #convert last agent to ball
@@ -328,8 +361,7 @@ class curling : public OlympicsBase {
       new_agent_color = green;
       num_green += 1;
     } else {
-      std::cout << "not implemented 11";
-      abort();
+      THROW(std::runtime_error, "not implemented error");
     }
     agent_list.push_back({1, 15, start_pos, new_agent_color, vis, vis_clear});
     agent_init_pos[agent_init_pos.size() - 1] = start_pos;
@@ -428,9 +460,8 @@ class curling : public OlympicsBase {
     // else:
     //     return [np.zeros_like(obs)-1, obs]
   }
-  std::tuple<obslist_t, reward_t, bool, std::string> step(
-      std::deque<std::vector<double>> actions_list);
-  static curling create(std::string mappath) { return curling(mappath); }
+  std::tuple<obslist_t, reward_t, bool, std::string>
+  step(std::deque<std::vector<double>> actions_list);
 };
 
 #endif

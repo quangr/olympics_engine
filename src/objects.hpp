@@ -11,6 +11,10 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#define THROW(ExceptionType, message)                                    \
+    throw ExceptionType(std::string(message) + " in " + __FILE__ + ':'   \
+                        + std::to_string(__LINE__) + ':' + __func__)
+
 namespace py = pybind11;
 using point2 = Eigen::Vector2d;
 using mat2 = Eigen::Matrix2d;
@@ -239,8 +243,8 @@ struct wall_t : component_t {
       else if (t1 >= 0 && t2 < 0)
         tl = t1;
       else {
-        std::cout << "not implemented 13";
-        abort();
+          THROW(std::runtime_error,"not implemented error");
+
       }
 
       // std::cout << ("endpoint collision time error");
@@ -250,8 +254,8 @@ struct wall_t : component_t {
   point2 getattr(Target t) {
     if (t == Target::l1) return l1;
     if (t == Target::l2) return l2;
-    std::cout << "not implemented 14";
-    abort();
+          THROW(std::runtime_error,"not implemented error");
+
     // panic
   };
 
@@ -280,8 +284,8 @@ struct wall_t : component_t {
       vx_new = v[0] - factor * n[0];
       vy_new = v[1] - factor * n[1];
     } else {
-      std::cout << "not implemented 15";
-      abort();
+          THROW(std::runtime_error,"not implemented error");
+
       //  raise NotImplementedError("collision response error")
     }
     auto col_x = pos[0] + v[0] * t;
@@ -380,8 +384,7 @@ struct arc_t : component_t {
   std::vector<double> init_pos;
   point2 center;
   point2 getattr(Target t) {
-    std::cout << "not implemented 16";
-    abort();
+          THROW(std::runtime_error,"not implemented error");
   };
 
   std::tuple<point2, point2> collision_response(point2 pos, point2 v, double r,

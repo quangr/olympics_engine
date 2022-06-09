@@ -1,11 +1,12 @@
 
 #include "core.h"
 
+#include <cassert>
 #include <math.h>
 
 #include <optional>
+#include <stdexcept>
 #include <vector>
-
 namespace helperfunction {
 double cross_prod(point2 v1, point2 v2) {
   return v1.x() * v2.y() - v2.x() * v1.y();
@@ -30,7 +31,8 @@ bool line_intersect(mat2 line1, mat2 line2) {
   auto s = point2(line2(1, 0) - line2(0, 0), line2(1, 1) - line2(0, 1));
 
   auto rs = cross_prod(r, s);
-  if (rs == 0) return false;
+  if (rs == 0)
+    return false;
   auto q_p = point2(q[0] - p[0], q[1] - p[1]);
 
   auto t = cross_prod(q_p, s) / rs;
@@ -118,8 +120,8 @@ bool check_radian(double start_radian, double end_radian, double angle) {
   }
 };
 
-}  // namespace helperfunction
-void readjson(std::string filename, map_t& map);
+} // namespace helperfunction
+void readjson(std::string filename, map_t &map);
 
 OlympicsBase::OlympicsBase(std::string mappath) {
   readjson(mappath, map);
@@ -142,7 +144,7 @@ std::vector<point2> OlympicsBase::get_obs_boundaray(point2 init_position,
   }
   return boundary;
 }
-void OlympicsBase::generate_map(const map_t& map) {
+void OlympicsBase::generate_map(const map_t &map) {
   for (size_t index = 0; index < map.agents.size(); index++) {
     auto item = map.agents[index];
     this->agent_list.push_back(item);
@@ -184,12 +186,15 @@ void OlympicsBase::init_state() {
 
 obslist_t OlympicsBase::reset() {
   // set_seed()
+  generate_map(map);
+  merge_map();
   init_state();
   this->step_cnt = 0;
   this->done = false;
   // this->viewer = Viewer(view_setting);
   this->display_mode = false;
-  return get_obs();
+  auto obs = get_obs();
+  return obs;
 }
 
 using namespace helperfunction;
@@ -215,10 +220,12 @@ void arc_t::update_cur_pos(double agent_x, double agent_y) {
 }
 
 obslist_t OlympicsBase::get_obs() {
-  obslist_t obs_map;
+  obs_boundary.clear();
+  obsmap_t obs_map;
   for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
     auto agent = agent_list[agent_idx];
-    if (agent.is_ball) continue;
+    if (agent.is_ball)
+      continue;
     auto theta_copy = agent_theta[agent_idx];
     auto agent_pos = this->agent_pos;
     auto agent_x = agent_pos[agent_idx][0];
@@ -247,7 +254,8 @@ obslist_t OlympicsBase::get_obs() {
       agent_current_boundary.push_back({x_new_, -y_new_});
     }
     obs_boundary.push_back(agent_current_boundary);
-    for (auto item : map.objects) item->update_cur_pos(agent_x, agent_y);
+    for (auto item : map.objects)
+      item->update_cur_pos(agent_x, agent_y);
     auto vec_oc = point2(agent.r + visibility / 2, 0);
     auto c_x = vec_oc[0];
     auto c_y = vec_oc[1];
@@ -255,7 +263,7 @@ obslist_t OlympicsBase::get_obs() {
     auto c_x_ = tempp[0];
     auto c_y_ = tempp[1];
     auto vec_oc_ = point2(c_x_, c_y_);
-    std::vector<object_t*> map_objects;
+    std::vector<object_t *> map_objects;
     map_view_t map_deduced;
     double distance;
     for (auto c : map.objects) {
@@ -266,13 +274,14 @@ obslist_t OlympicsBase::get_obs() {
     }
     map_deduced.agents.clear();
 
-    auto& agent_self = agent_list[agent_idx];
+    auto &agent_self = agent_list[agent_idx];
     agent_self.to_another_agent.clear();
     agent_self.to_another_agent_rotated.clear();
     int temp_idx = 0;
     for (size_t a_i = 0; a_i < agent_list.size(); a_i++) {
-      if (a_i == agent_idx) continue;
-      auto& a_other = agent_list[a_i];
+      if (a_i == agent_idx)
+        continue;
+      auto &a_other = agent_list[a_i];
       auto vec_o_b = point2(agent_pos[a_i][0], -agent_pos[a_i][1]);
       auto vec_oo_ = point2(-agent_x, agent_y);
       auto vec_ob = point2(vec_o_b[0] + vec_oo_[0], vec_o_b[1] + vec_oo_[1]);
@@ -288,7 +297,8 @@ obslist_t OlympicsBase::get_obs() {
       }
     }
     obs_map = Eigen::Matrix<uint8_t, -1, -1>::Zero(obs_size, obs_size);
-    for (auto obj : map_deduced.objects) obj->update_cur_pos_rotated(theta);
+    for (auto obj : map_deduced.objects)
+      obj->update_cur_pos_rotated(theta);
     for (size_t id = 0; id < map_deduced.agents.size(); id++) {
       auto obj = map_deduced.agents[id];
       auto vec_ob = agent_self.to_another_agent[id];
@@ -301,18 +311,13 @@ obslist_t OlympicsBase::get_obs() {
       (*component)
           ->update_obs_map(obs_map, obs_size, visibility, v_clear, theta, agent,
                            agent_self);
-    // obs_list[agent_idx] = (obs_map);
+    obs_list.push_back(obs_map);
   }
-  obs_list = obs_map;
-  if (obs_list.data() == 0) {
-    std::cout << "not implemented 1";
-    abort();
-  }
-  return obs_map;
+  return obs_list;
 }
 
-std::vector<point2> OlympicsBase::actions_to_accel(
-    std::vector<std::vector<double>> actions_list) {
+std::vector<point2>
+OlympicsBase::actions_to_accel(std::vector<std::vector<double>> actions_list) {
   std::vector<point2> a_container(agent_num);
   for (size_t agent_idx = 0; agent_idx < agent_num; agent_idx++) {
     auto action = actions_list[agent_idx];
@@ -344,11 +349,12 @@ std::tuple<double, Target> wall_t::collision_time(point2 pos, point2 v,
   auto cl1 = point2(l1[0] - pos[0], l1[1] - pos[1]);
   auto cl1_n = cl1[0] * n[0] + cl1[1] * n[1];
   auto v_n = (n[0] * v[0] + n[1] * v[1]);
-  if (v_n == 0) return {-1, None};
+  if (v_n == 0)
+    return {-1, None};
   auto r_ = cl1_n < 0 ? radius : -radius;
   auto wall_col_t =
       cl1_n / v_n +
-      r_ * nn_sqrt / v_n;  // the collision time with the line segment
+      r_ * nn_sqrt / v_n; // the collision time with the line segment
 
   // check the collision point is on the line segment
   auto new_pos = point2(pos[0] + wall_col_t * v[0], pos[1] + wall_col_t * v[1]);
@@ -400,11 +406,13 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
       t1 = -1;
     else {
       auto sqrt = std::sqrt(RHS);
-      ;
+
       auto t_inner1 = -(l / k) + sqrt;
       auto t_inner2 = -(l / k) - sqrt;
-      if (abs(t_inner1) <= 1e-10) t_inner1 = 0;
-      if (abs(t_inner2) <= 1e-10) t_inner2 = 0;
+      if (abs(t_inner1) <= 1e-10)
+        t_inner1 = 0;
+      if (abs(t_inner2) <= 1e-10)
+        t_inner2 = 0;
       auto t1_check = this->check_radian(pos, v, t_inner1);
       auto t2_check = this->check_radian(pos, v, t_inner2);
       if (t1_check && t2_check)
@@ -421,8 +429,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
         else if (t_inner1 >= 0 && t_inner2 <= 0)
           t1 = t_inner1;
         else {
-          std::cout << "not implemented 2";
-          abort();
+          THROW(std::runtime_error, "not implemented error");
         }
 
       //                            #print('CHECK t1 = {}, t2 =
@@ -434,7 +441,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
       else if (not t1_check && t2_check)
         t1 = t_inner2;
 
-      else  //    #when both collision is outside the arc angle range
+      else //    #when both collision is outside the arc angle range
         t1 = -1;
     }
     auto RHS2 = (l / k) * (l / k) - h / k + (R + radius) * (R + radius) / k;
@@ -447,8 +454,10 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
       auto t_outter1 = -(l / k) + sqrt2;
       auto t_outter2 = -(l / k) - sqrt2;
 
-      if (abs(t_outter1) <= 1e-10) t_outter1 = 0;
-      if (abs(t_outter2) <= 1e-10) t_outter2 = 0;
+      if (abs(t_outter1) <= 1e-10)
+        t_outter1 = 0;
+      if (abs(t_outter2) <= 1e-10)
+        t_outter2 = 0;
 
       // check radian, for both t,
       auto t1_check = this->check_radian(pos, v, t_outter1);
@@ -460,20 +469,20 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
         else if (abs(t_outter2) < 1e-10 && inflag)
           t2 = t_outter1;
         else {
-          if (t_outter1 <= 0 && t_outter2 <= 0)  // leaving the collision
-                                                 // point
+          if (t_outter1 <= 0 && t_outter2 <= 0) // leaving the collision
+                                                // point
             t2 = std::max(t_outter1, t_outter2);
           else if (t_outter1 >= 0 &&
-                   t_outter2 >= 0)  // approaching the collision point
+                   t_outter2 >= 0) // approaching the collision point
             t2 = std::min(t_outter1, t_outter2);
-          else if (t_outter1 >= 0 && t_outter2 <= 0)  // inside the circle
+          else if (t_outter1 >= 0 && t_outter2 <= 0) // inside the circle
             t2 = t_outter1;
           else {
-            std::cout << "not implemented 3";
-            abort();
+          THROW(std::runtime_error,"not implemented error");
+
           }
 
-        }  // raise NotImplementedError
+        } // raise NotImplementedError
       } else if (t1_check && not t2_check)
         t2 = t_outter1;
 
@@ -493,11 +502,11 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
         col_target = inner;
         col_t = t1;
       } else {
-        std::cout << "not implemented 5";
-        abort();
+          THROW(std::runtime_error,"not implemented error");
+
       }
 
-    }  // #print('t1 = {}, t2 = {}'.format(t1, t2))
+    } // #print('t1 = {}, t2 = {}'.format(t1, t2))
     else if (t1 < 0 and t2 >= 0) {
       col_target = outter;
       col_t = t2;
@@ -511,8 +520,8 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
     return {col_t, col_target == None ? None : arc};
 
   } else {
-    std::cout << "not implemented 4";
-    abort();
+          THROW(std::runtime_error,"not implemented error");
+
     // not implement
   }
 }
@@ -530,15 +539,18 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
     auto pos = pos_container[agent_idx];
     auto v = v_container[agent_idx];
     auto r = agent_list[agent_idx].r;
-    if (v[0] == 0 && v[1] == 0) continue;
+    if (v[0] == 0 && v[1] == 0)
+      continue;
     for (size_t object_idx = 0; object_idx < map.objects.size(); object_idx++) {
       auto object = map.objects[object_idx];
-      if (object->can_pass) continue;
+      if (object->can_pass)
+        continue;
       auto [temp_t, temp_col_target] =
           object->collision_time(pos, v, r, agent_idx, object_idx, ignore);
       // TODO QUESTIONHERE!
 
-      if (abs(temp_t) < 1e-10) temp_t = 0;
+      if (abs(temp_t) < 1e-10)
+        temp_t = 0;
       if (0 <= temp_t && temp_t < current_min_t) {
         bool check = true;
         {
@@ -548,8 +560,8 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
           else if (temp_col_target == l1 || temp_col_target == l2)
             check = !ignore.contains({agent_idx, object_idx, temp_t});
           else {
-            std::cout << "not implemented 6";
-            abort();
+          THROW(std::runtime_error,"not implemented error");
+
           }
           // raise NotImplementedError('bounceable_wall_collision_time error')
         }
@@ -572,7 +584,8 @@ double OlympicsBase::CCD_circle_collision(point2 old_pos1, point2 old_pos2,
   auto relative_pos =
       point2(old_pos1[0] - old_pos2[0], old_pos1[1] - old_pos2[1]);
   auto relative_v = point2(old_v1[0] - old_v2[0], old_v1[1] - old_v2[1]);
-  if (relative_v.norm() == 0) return -1;
+  if (relative_v.norm() == 0)
+    return -1;
 
   auto pos_v =
       relative_pos[0] * relative_v[0] + relative_pos[1] * relative_v[1];
@@ -618,15 +631,16 @@ std::tuple<point2, point2> OlympicsBase::_circle_collision_response(
           {u2_x * circle_restitution, u2_y * circle_restitution}};
 }
 
-std::tuple<point2, point2, point2, point2> OlympicsBase::CCD_circle_collision_f(
-    point2 old_pos1, point2 old_pos2, point2 old_v1, point2 old_v2, double r1,
-    double r2, double m1, double m2) {
+std::tuple<point2, point2, point2, point2>
+OlympicsBase::CCD_circle_collision_f(point2 old_pos1, point2 old_pos2,
+                                     point2 old_v1, point2 old_v2, double r1,
+                                     double r2, double m1, double m2) {
   auto relative_pos =
       point2(old_pos1[0] - old_pos2[0], old_pos1[1] - old_pos2[1]);
   auto relative_v = point2(old_v1[0] - old_v2[0], old_v1[1] - old_v2[1]);
   if (relative_v.norm() == 0) {
-    std::cout << "not implemented 7";
-    abort();
+          THROW(std::runtime_error,"not implemented error");
+
   };
 
   auto pos_v =
@@ -656,14 +670,15 @@ std::tuple<point2, point2, point2, point2> OlympicsBase::CCD_circle_collision_f(
   // #handle collision
   auto [v1_col, v2_col] = _circle_collision_response(
       pos_col1, pos_col2, old_v1, old_v2, m1,
-      m2);  //   #the position and v at the collision time
+      m2); //   #the position and v at the collision time
 
   return {pos_col1, v1_col, pos_col2, v2_col};
 };
 
-std::tuple<double, Target, int, int> OlympicsBase::circle_collision_time(
-    std::vector<point2> pos_container, std::vector<point2> v_container,
-    double remaining_t, ignore_t ignore) {
+std::tuple<double, Target, int, int>
+OlympicsBase::circle_collision_time(std::vector<point2> pos_container,
+                                    std::vector<point2> v_container,
+                                    double remaining_t, ignore_t ignore) {
   int current_idx;
   int target_idx;
   auto current_min_t = remaining_t;
@@ -689,8 +704,8 @@ std::tuple<double, Target, int, int> OlympicsBase::circle_collision_time(
       // print('ignore list = ', ignore)
 
       if (0 <= collision_t &&
-          collision_t < current_min_t)  //# and [agent_idx, rest_idx,
-                                        // collision_t] not in ignore:
+          collision_t < current_min_t) //# and [agent_idx, rest_idx,
+                                       // collision_t] not in ignore:
       {
         current_min_t = collision_t;
         current_idx = agent_idx;
@@ -705,10 +720,10 @@ std::tuple<double, Target, int, int> OlympicsBase::circle_collision_time(
 
 void OlympicsBase::handle_wall(int target_wall_idx, Target col_target,
                                int current_agent_idx, double col_t,
-                               std::vector<point2>& pos_container,
-                               std::vector<point2>& v_container,
-                               double& remaining_t,
-                               ignore_t& ignore_wall_list) {
+                               std::vector<point2> &pos_container,
+                               std::vector<point2> &v_container,
+                               double &remaining_t,
+                               ignore_t &ignore_wall_list) {
   auto [col_pos, col_v] = wall_response(
       target_wall_idx, col_target = col_target,
       pos_container[current_agent_idx], v_container[current_agent_idx],
@@ -736,7 +751,7 @@ void OlympicsBase::handle_wall(int target_wall_idx, Target col_target,
     } else
       _add_wall_ignore(col_target, current_agent_idx, target_wall_idx,
                        ignore_wall_list,
-                       true);  //  HERE MODIFYED #collision of arc
+                       true); //  HERE MODIFYED #collision of arc
   }
 
   if (col_target == wall) {
@@ -758,10 +773,10 @@ void OlympicsBase::handle_wall(int target_wall_idx, Target col_target,
 
 void OlympicsBase::handle_circle(int target_circle_idx, Target col_target,
                                  int current_circle_idx, double col_t,
-                                 std::vector<point2>& pos_container,
-                                 std::vector<point2>& v_container,
-                                 double& remaining_t,
-                                 ignore_t& ignore_circle_list) {
+                                 std::vector<point2> &pos_container,
+                                 std::vector<point2> &v_container,
+                                 double &remaining_t,
+                                 ignore_t &ignore_circle_list) {
   auto [pos_col1, v1_col, pos_col2, v2_col] = CCD_circle_collision_f(
       pos_container[current_circle_idx], pos_container[target_circle_idx],
       v_container[current_circle_idx], v_container[target_circle_idx],
@@ -778,12 +793,12 @@ void OlympicsBase::handle_circle(int target_circle_idx, Target col_target,
   remaining_t -= col_t;
   if (remaining_t <= 1e-14)
     global_circle_ignore.insert({current_circle_idx, target_circle_idx,
-                                 0.0});  // # adding instead of defining
+                                 0.0}); // # adding instead of defining
   ignore_circle_list.insert({current_circle_idx, target_circle_idx, 0.0});
 }
 
 void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
-                               int step = 0, bool take_action = true) {
+                               int step = 0) {
   assert(actions_list.size() == agent_num);
   // print("The number of action needs to match with the number of agents!")
   // actions_list = actions_list
@@ -825,7 +840,7 @@ void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
              collision_circle_target == circle) {
       // print('HIT BOTH!')
       if (earliest_wall_col_t <
-          earliest_circle_col_t) {  // print('PROCESS WALL FIRST!')
+          earliest_circle_col_t) { // print('PROCESS WALL FIRST!')
         handle_wall(target_wall_idx, collision_wall_target, current_agent_idx,
                     earliest_wall_col_t, temp_pos_container, temp_v_container,
                     remaining_t, ignore_wall);
@@ -840,7 +855,7 @@ void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
       // print('NO COLLISION!')
       update_all(temp_pos_container, temp_v_container, remaining_t,
                  temp_a_container);
-      break;  // #when no collision occurs, break the collision detection loop
+      break; // #when no collision occurs, break the collision detection loop
     }
   }
   agent_pos = temp_pos_container;
@@ -851,8 +866,8 @@ void OlympicsBase::stepPhysics(std::vector<std::vector<double>> actions_list,
   //           << std::endl;
 };
 
-std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
-    std::deque<std::vector<double>> actions_list) {
+std::tuple<obslist_t, reward_t, bool, std::string>
+curling::step(std::deque<std::vector<double>> actions_list) {
   auto action = std::vector<std::vector<double>>(agent_list.size(),
                                                  std::vector<double>(2));
   if (!release) {
@@ -865,20 +880,25 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
         action[agent_idx] = {0, 0};
       }
     }
+  } else {
+    for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
+      action[agent_idx] = {0, 0};
+    }
   }
-  stepPhysics(action, step_cnt, release);
-  if (!release) cross_detect();
+  stepPhysics(action, step_cnt);
+  if (!release)
+    cross_detect();
   step_cnt += 1;
   round_step += 1;
   auto obs_next = obs_list;
-  if (_render) obs_next = get_obs();
+  if (_render)
+    obs_next = get_obs();
   auto done = is_terminal();
   reward_t step_reward;
   if (!done) {
     auto [round_end, end_info] = _round_terminal();
-
     if (round_end) {
-      if (end_info != 0) {  // #clean the last agent
+      if (end_info != 0) { // #clean the last agent
         agent_list.pop_back();
         agent_pos.pop_back();
         agent_v.pop_back();
@@ -894,8 +914,8 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
       else if (temp_winner == 1)
         step_reward = {0., 1};
       else {
-        std::cout << "not implemented 8";
-        abort();
+          THROW(std::runtime_error,"not implemented error");
+
       }
 
       // raise NotImplementedError
@@ -931,8 +951,8 @@ std::tuple<obslist_t, reward_t, bool, std::string> curling::step(
       auto next_obs = reset(true);
       return {next_obs, step_reward, false, "game1 ends, switch position"};
     } else {
-      std::cout << "not implemented 9";
-      abort();
+          THROW(std::runtime_error,"not implemented error");
+
     }
   }
   // if (current_team == 0)

@@ -37,6 +37,6 @@ TEST(CurlingTEST, TESTSTEP) {
     // std::cin >> p1 >> a1 >> p2 >> a2;
     // std::cout << p1 << ' ' << a1 << ' ' << p2 << ' ' << a2 << std::endl;
     // c.step({{p1, a1}, {p2, a2}});
-    c.step({{200, 0}, {200, 0}});
+    c.step({{200, 0}});
   }
 }
