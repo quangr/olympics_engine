@@ -1,6 +1,6 @@
-from OlympicsBase import OlympicsBase
-from viewer import Viewer, debug
-from objects import Ball, Agent
+from olympics_engine.core import OlympicsBase
+from olympics_engine.viewer import Viewer, debug
+from olympics_engine.objects import Ball, Agent
 from pathlib import Path
 CURRENT_PATH = str(Path(__file__).resolve().parent.parent)
 
@@ -54,30 +54,26 @@ IDX_TO_COLOR = {
 grid_node_width = 2     #for view drawing
 grid_node_height = 2
 
-
-# from classic_control_envpool import closest_point, distance_to_line
-
+from olympics_engine.tools.func import closest_point, distance_to_line
 
 
-
-class curling(OlympicsBase):
+class curling_long(OlympicsBase):
     def __init__(self, map):
         self.minimap_mode = map['obs_cfg']['minimap']
         self.original_tau = map['env_cfg']['tau']
+        self.faster = map['env_cfg']['faster']
         self.original_gamma = map['env_cfg']['gamma']
-        
-        super(curling, self).__init__(map)
+        self.field_gamma=  map['env_cfg']['field_gamma']
 
-        self.game_name = 'curling'
+        super(curling_long, self).__init__(map)
+
+        self.game_name = 'curling-long'
 
         self.tau = self.original_tau
-        self.faster = map['env_cfg']['faster']
-
         self.wall_restitution = map['env_cfg']['wall_restitution']
         self.circle_restitution = map['env_cfg']['circle_restitution']
         self.round_max_step = map['env_cfg']['round_max_step']
         self.max_n = map['env_cfg']['max_n']
-        self.field_gamma = map['env_cfg']["field_gamma"]
 
         self.print_log = False
         self.draw_obs = True
@@ -87,6 +83,8 @@ class curling(OlympicsBase):
 
         self.vis=200
         self.vis_clear = 5
+
+        self.center = [300, 900]
 
         self.purple_rock = pygame.image.load(os.path.join(CURRENT_PATH, "assets/purple rock.png"))
         self.green_rock = pygame.image.load(os.path.join(CURRENT_PATH,"assets/green rock.png"))
@@ -109,19 +107,25 @@ class curling(OlympicsBase):
         self.temp_winner = -1
         self.round_step = 0
 
-        self.clear_agent()
+        self.agent_num = 0
+        self.agent_list = []
+        self.agent_init_pos = []
+        self.agent_pos = []
+        self.agent_previous_pos = []
+        self.agent_v = []
+        self.agent_accel = []
+        self.agent_theta = []
 
         self.obs_boundary_init = list()
         self.obs_boundary = self.obs_boundary_init
 
         #self.check_valid_map()
-        # self.generate_map(self.map)
-        # self.merge_map()
+        self.generate_map(self.map)
+        self.merge_map()
 
-        # self.init_state()
-
-        # self.step_cnt = 0
-        # self.done = False
+        self.init_state()
+        self.step_cnt = 0
+        self.done = False
         self.release = False
 
         self.viewer = Viewer(self.view_setting)
@@ -129,31 +133,28 @@ class curling(OlympicsBase):
         self.view_terminal = False
 
         self.current_team = 0
-        obs = super(curling, self).reset()
+        obs = self.get_obs()
+
+        self.minimap_mode = True
 
         if self.minimap_mode:
             self._build_minimap()
+
+
         output_init_obs = self._build_from_raw_obs(obs)
         return output_init_obs
 
-    # def clear_agent(self):
-    #     self.agent_num = 0
-    #     self.agent_list = []
-    #     self.agent_init_pos = []
-    #     self.agent_pos = []
-    #     self.agent_previous_pos = []
-    #     self.agent_v = []
-    #     self.agent_accel = []
-    #     self.agent_theta = []
-
-    #     # return [obs, np.zeros_like(obs)-1]
+        # return [obs, np.zeros_like(obs)-1]
 
     def _reset_round(self):
         self.current_team = 1-self.current_team
         #convert last agent to ball
         if len(self.agent_list) != 0:
-            self.agent_list[-1].to_ball()
-            self.agent_list[-1].alive = False
+            last_agent = self.agent_list[-1]
+            last_ball = Ball(mass = last_agent.mass, r = last_agent.r, position = self.agent_pos[-1],
+                             color = last_agent.color)
+            last_ball.alive = False
+            self.agent_list[-1] = last_ball
 
         #add new agent
         if self.current_team == 0:
@@ -167,18 +168,30 @@ class curling(OlympicsBase):
 
         else:
             raise NotImplementedError
-        self.add_agent(COLOR_TO_IDX[new_agent_color],self.start_pos,self.start_init_obs,self.vis, self.vis_clear)
-        print(self.agent_init_pos)
+
+        new_agent = Agent(mass = 1, r= 15, position = self.start_pos, color = new_agent_color,
+                          vis = self.vis, vis_clear = self.vis_clear)
+
+        self.agent_list.append(new_agent)
+        self.agent_init_pos[-1] = self.start_pos
+        new_boundary = self.get_obs_boundaray(self.start_pos, 15, self.vis)
+        self.obs_boundary_init.append(new_boundary)
+        self.agent_num += 1
+
+        self.agent_pos.append(self.agent_init_pos[-1])
+        self.agent_v.append([0,0])
+        self.agent_accel.append([0,0])
+        init_obs = self.start_init_obs
+        self.agent_theta.append([init_obs])
         self.agent_record.append([self.agent_init_pos[-1]])
 
         self.release = False
-        self.gamma = self.original_gamma
+        self.gamma = 0.98
         self.tau = self.original_tau
 
         self.round_step = 0
 
         return self.get_obs()
-
 
 
 
@@ -206,7 +219,7 @@ class curling(OlympicsBase):
                         # print('agent type = ', agent.type)
                         agent.alive = False
                         #agent.color = 'red'
-                        self.gamma = 1-(1-self.field_gamma)*self.faster
+                        self.gamma = 1-(1-self.field_gamma)*self.faster           #this will change the gamma for the whole env, so need to change if dealing with multi-agent
                         self.tau *= self.faster
                         self.release = True
                         self.round_countdown = self.round_max_step-self.round_step
@@ -218,7 +231,7 @@ class curling(OlympicsBase):
                 action.append(action_list[0])
                 _ = action_list.pop(0)
             else:
-                action.append([.0,.0])
+                action.append(None)
 
         return action
 
@@ -231,7 +244,7 @@ class curling(OlympicsBase):
         #previous_pos = self.agent_pos
         action_list = self.check_action(actions_list)
         if self.release:
-            input_action = [[.0,.0] for _ in range(len(self.agent_list))]       #if jump, stop actions
+            input_action = [None for _ in range(len(self.agent_list))]       #if jump, stop actions
         else:
             input_action = action_list
 
@@ -246,20 +259,19 @@ class curling(OlympicsBase):
 
 
         done = self.is_terminal()
+
         if not done:
             round_end, end_info = self._round_terminal()
-            print(round_end)
             if round_end:
 
                 if end_info is not None:
                     #clean the last agent
-                    self.remove_agent(len(self.agent_list)-1)
-                    # del self.agent_list[-1]
-                    # del self.agent_pos[-1]
-                    # del self.agent_v[-1]
-                    # del self.agent_theta[-1]
-                    # del self.agent_accel[-1]
-                    # self.agent_num -= 1
+                    del self.agent_list[-1]
+                    del self.agent_pos[-1]
+                    del self.agent_v[-1]
+                    del self.agent_theta[-1]
+                    del self.agent_accel[-1]
+                    self.agent_num -= 1
 
                 self.temp_winner, min_d = self.current_winner()
                 #step_reward = [1,0.] if self.temp_winner == 0 else [0., 1]          #score for each round
@@ -305,11 +317,14 @@ class curling(OlympicsBase):
     def _build_from_raw_obs(self, obs):
         if self.minimap_mode:
             image = pygame.surfarray.array3d(self.viewer.background).swapaxes(0,1)
+            self.image = image
 
         if self.current_team == 0:
             return [{'agent_obs': obs[0], "minimap": image if self.minimap_mode else None, "id": "team_0"},
                     {'agent_obs': np.zeros_like(obs[0]) - 1, "minimap": None, "id": "team_1"}]
         elif self.current_team == 1:
+            if len(obs) == 1:
+                return 0 ,0
             return [{"agent_obs": np.zeros_like(obs[1]) - 1, "minimap": None, "id": "team_0"},
                     {"agent_obs": obs[1], "minimap": image if self.minimap_mode else None, "id": "team_1"}]
 
@@ -326,13 +341,13 @@ class curling(OlympicsBase):
 
         self.viewer.draw_ball(self.agent_pos, self.agent_list)
 
-        if self.draw_obs:
-            self.viewer.draw_obs(self.obs_boundary, self.agent_list)
+        # if self.draw_obs:
+        #     self.viewer.draw_obs(self.obs_boundary, self.agent_list)
 
 
     def get_reward(self):
 
-        center = [300, 500]
+        center =  self.center  #[300, 500]
         pos = self.agent_pos[0]
         distance = math.sqrt((pos[0]-center[0])**2 + (pos[1]-center[1])**2)
         return [distance]
@@ -380,7 +395,7 @@ class curling(OlympicsBase):
 
     def current_winner(self):
 
-        center = [300, 500]
+        center =  self.center  #[300, 500]
         min_dist = 1e4
         win_team = -1
         for i, agent in enumerate(self.agent_list):
@@ -398,7 +413,7 @@ class curling(OlympicsBase):
 
         if self.minimap_mode:
             ground_image = pygame.transform.scale(self.curling_ground, size=(200, 200))
-            self.viewer.background.blit(ground_image, (200, 400))
+            self.viewer.background.blit(ground_image, (200, 800))
 
             if self.draw_obs:
                 self.viewer.draw_obs(self.obs_boundary, self.agent_list)
@@ -409,6 +424,8 @@ class curling(OlympicsBase):
                 self.viewer.draw_map(w)
 
             self._draw_curling_rock(self.agent_pos, self.agent_list)
+            if self.draw_obs:
+                self.viewer.draw_obs(self.obs_boundary, self.agent_list)
 
         else:
 
@@ -419,7 +436,7 @@ class curling(OlympicsBase):
             self.viewer.draw_background()
 
             ground_image = pygame.transform.scale(self.curling_ground, size=(200, 200))
-            self.viewer.background.blit(ground_image, (200, 400))
+            self.viewer.background.blit(ground_image, (200, 800))
 
             if self.draw_obs:
                 self.viewer.draw_obs(self.obs_boundary, self.agent_list)
@@ -480,6 +497,8 @@ class curling(OlympicsBase):
             pygame.draw.line(self.viewer.background, start_pos=[630, 100], end_pos=[630,190], color=[0,0,0])
             pygame.draw.line(self.viewer.background, start_pos=[470, 160], end_pos=[690, 160], color=[0,0,0])
 
+
+            self._draw_site_minimap()
 
         #draw energy bar
         #debug('agent remaining energy = {}'.format([i.energy for i in self.agent_list]), x=100)
@@ -572,43 +591,25 @@ class curling(OlympicsBase):
                                                           [550 + 78 + 70 * count, 78],
                                                           [550 + 78 + 70 * count, 0]], closed=True,
                           color=COLORS[color], width=2)
-        #
-        # for agent_idx in range(len(obs)):
-        #     matrix = obs[agent_idx]
-        #     if matrix is None:
-        #         continue
-        #
-        #     obs_weight, obs_height = matrix.shape[0], matrix.shape[1]
-        #     y = 40 - obs_height
-        #     for row in matrix:
-        #         x = coord[agent_idx]- obs_height/2
-        #         for item in row:
-        #             pygame.draw.rect(self.viewer.background, COLORS[IDX_TO_COLOR[int(item)]], [x,y,grid_node_width, grid_node_height])
-        #             x+= grid_node_width
-        #         y += grid_node_height
-        #
-        #     color = agent_list[agent_idx].color
-        #     r = agent_list[agent_idx].r
-        #
-        #     if color == 'purple':
-        #         image_purple = pygame.transform.scale(self.purple_rock, size=(r*2, r*2))
-        #         loc = [coord[agent_idx]+15-r, 70 + agent_list[agent_idx].r-r]
-        #         self.viewer.background.blit(image_purple, loc)
-        #     elif color == 'green':
-        #         image_green = pygame.transform.scale(self.green_rock, size=(r*2, r*2))
-        #         loc = [coord[agent_idx]+15-r, 70 + agent_list[agent_idx].r-r]
-        #         self.viewer.background.blit(image_green, loc)
-        #     else:
-        #         raise NotImplementedError
-        #
-        #     #
-        #     # pygame.draw.circle(self.background, COLORS[agent_list[agent_idx].color], [coord[agent_idx]+10, 55 + agent_list[agent_idx].r],
-        #     #                    agent_list[agent_idx].r, width=0)
-        #     # pygame.draw.circle(self.background, COLORS["black"], [coord[agent_idx]+10, 55 + agent_list[agent_idx].r], 2,
-        #     #                    width=0)
-        #
-        #     pygame.draw.lines(self.viewer.background, points =[[563+70*agent_idx,10],[563+70*agent_idx, 70], [565+60+70*agent_idx,70], [565+60+70*agent_idx, 10]], closed=True,
-        #                       color = COLORS[agent_list[agent_idx].color], width=2)
 
+    def _draw_site_minimap(self):
+        debug("TOP View: ", x = 480, y =210)
 
+        node_width = 1
+        node_height = 1
 
+        site_view = self.image[800:1000, 200:400, ...]
+        obs_width, obs_height = site_view.shape[0], site_view.shape[1]
+        y = 430-obs_width
+        coord = 580
+        for row in site_view:
+            x = coord - obs_height/2
+            for item in row:
+                pygame.draw.rect(self.viewer.background, item,
+                                 [x,y, node_width, node_height])
+                x += node_width
+            y += node_height
+
+        pygame.draw.lines(self.viewer.background, points = [[coord-100, y-200], [coord+100, y-200],
+                                                            [coord+100,y],[coord-100,y]],
+                          color=COLORS['black'], width=2, closed=True)

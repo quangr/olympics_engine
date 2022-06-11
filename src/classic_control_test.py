@@ -34,8 +34,10 @@ def type(self):
     else:
         return "agent"
 
+
 classic_control_envpool.agent_t.color=color
 classic_control_envpool.agent_t.type=type
+
 
 
 # class Curling(classic_control_envpool.curling):
@@ -98,15 +100,15 @@ classic_control_envpool.agent_t.type=type
 class _CurlingTest(absltest.TestCase):
 
     def testbuild(self) -> None:
-        import ptvsd
-        ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-        print('Now is a good time to attach your debugger: Run: Python: Attach')
-        ptvsd.wait_for_attach()
+        # import ptvsd
+        # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+        # print('Now is a good time to attach your debugger: Run: Python: Attach')
+        # ptvsd.wait_for_attach()
         a=curling(create_scenario("curling"))
         print(a.reset())
         # print(a.step([[200,0],[200,0]]))
         while(True):
-            # a.render()
+            a.render()
             f=a.step(np.array([[10,10],[10,10]]))
         # print("pythonpath: ", sys.executable)
         # print("Python version: ", sys.version)

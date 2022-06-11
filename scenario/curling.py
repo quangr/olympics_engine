@@ -1,6 +1,6 @@
-from OlympicsBase import OlympicsBase
-from viewer import Viewer, debug
-from objects import Ball, Agent
+from olympics_engine.core import OlympicsBase
+from olympics_engine.viewer import Viewer, debug
+from olympics_engine.objects import Ball, Agent
 from pathlib import Path
 CURRENT_PATH = str(Path(__file__).resolve().parent.parent)
 
@@ -55,7 +55,7 @@ grid_node_width = 2     #for view drawing
 grid_node_height = 2
 
 
-# from classic_control_envpool import closest_point, distance_to_line
+from olympics_engine.tools.func import closest_point, distance_to_line
 
 
 
@@ -65,7 +65,7 @@ class curling(OlympicsBase):
         self.minimap_mode = map['obs_cfg']['minimap']
         self.original_tau = map['env_cfg']['tau']
         self.original_gamma = map['env_cfg']['gamma']
-        
+
         super(curling, self).__init__(map)
 
         self.game_name = 'curling'
@@ -109,19 +109,25 @@ class curling(OlympicsBase):
         self.temp_winner = -1
         self.round_step = 0
 
-        self.clear_agent()
+        self.agent_num = 0
+        self.agent_list = []
+        self.agent_init_pos = []
+        self.agent_pos = []
+        self.agent_previous_pos = []
+        self.agent_v = []
+        self.agent_accel = []
+        self.agent_theta = []
 
         self.obs_boundary_init = list()
         self.obs_boundary = self.obs_boundary_init
 
         #self.check_valid_map()
-        # self.generate_map(self.map)
-        # self.merge_map()
+        self.generate_map(self.map)
+        self.merge_map()
 
-        # self.init_state()
-
-        # self.step_cnt = 0
-        # self.done = False
+        self.init_state()
+        self.step_cnt = 0
+        self.done = False
         self.release = False
 
         self.viewer = Viewer(self.view_setting)
@@ -129,31 +135,24 @@ class curling(OlympicsBase):
         self.view_terminal = False
 
         self.current_team = 0
-        obs = super(curling, self).reset()
+        obs = self.get_obs()
 
         if self.minimap_mode:
             self._build_minimap()
         output_init_obs = self._build_from_raw_obs(obs)
         return output_init_obs
 
-    # def clear_agent(self):
-    #     self.agent_num = 0
-    #     self.agent_list = []
-    #     self.agent_init_pos = []
-    #     self.agent_pos = []
-    #     self.agent_previous_pos = []
-    #     self.agent_v = []
-    #     self.agent_accel = []
-    #     self.agent_theta = []
-
-    #     # return [obs, np.zeros_like(obs)-1]
+        # return [obs, np.zeros_like(obs)-1]
 
     def _reset_round(self):
         self.current_team = 1-self.current_team
         #convert last agent to ball
         if len(self.agent_list) != 0:
-            self.agent_list[-1].to_ball()
-            self.agent_list[-1].alive = False
+            last_agent = self.agent_list[-1]
+            last_ball = Ball(mass = last_agent.mass, r = last_agent.r, position = self.agent_pos[-1],
+                             color = last_agent.color)
+            last_ball.alive = False
+            self.agent_list[-1] = last_ball
 
         #add new agent
         if self.current_team == 0:
@@ -167,8 +166,21 @@ class curling(OlympicsBase):
 
         else:
             raise NotImplementedError
-        self.add_agent(COLOR_TO_IDX[new_agent_color],self.start_pos,self.start_init_obs,self.vis, self.vis_clear)
-        print(self.agent_init_pos)
+
+        new_agent = Agent(mass = 1, r= 15, position = self.start_pos, color = new_agent_color,
+                          vis = self.vis, vis_clear = self.vis_clear)
+
+        self.agent_list.append(new_agent)
+        self.agent_init_pos[-1] = self.start_pos
+        new_boundary = self.get_obs_boundaray(self.start_pos, 15, self.vis)
+        self.obs_boundary_init.append(new_boundary)
+        self.agent_num += 1
+
+        self.agent_pos.append(self.agent_init_pos[-1])
+        self.agent_v.append([0,0])
+        self.agent_accel.append([0,0])
+        init_obs = self.start_init_obs
+        self.agent_theta.append([init_obs])
         self.agent_record.append([self.agent_init_pos[-1]])
 
         self.release = False
@@ -178,7 +190,6 @@ class curling(OlympicsBase):
         self.round_step = 0
 
         return self.get_obs()
-
 
 
 
@@ -218,7 +229,7 @@ class curling(OlympicsBase):
                 action.append(action_list[0])
                 _ = action_list.pop(0)
             else:
-                action.append([.0,.0])
+                action.append(None)
 
         return action
 
@@ -231,7 +242,7 @@ class curling(OlympicsBase):
         #previous_pos = self.agent_pos
         action_list = self.check_action(actions_list)
         if self.release:
-            input_action = [[.0,.0] for _ in range(len(self.agent_list))]       #if jump, stop actions
+            input_action = [None for _ in range(len(self.agent_list))]       #if jump, stop actions
         else:
             input_action = action_list
 
@@ -246,20 +257,19 @@ class curling(OlympicsBase):
 
 
         done = self.is_terminal()
+
         if not done:
             round_end, end_info = self._round_terminal()
-            print(round_end)
             if round_end:
 
                 if end_info is not None:
                     #clean the last agent
-                    self.remove_agent(len(self.agent_list)-1)
-                    # del self.agent_list[-1]
-                    # del self.agent_pos[-1]
-                    # del self.agent_v[-1]
-                    # del self.agent_theta[-1]
-                    # del self.agent_accel[-1]
-                    # self.agent_num -= 1
+                    del self.agent_list[-1]
+                    del self.agent_pos[-1]
+                    del self.agent_v[-1]
+                    del self.agent_theta[-1]
+                    del self.agent_accel[-1]
+                    self.agent_num -= 1
 
                 self.temp_winner, min_d = self.current_winner()
                 #step_reward = [1,0.] if self.temp_winner == 0 else [0., 1]          #score for each round

@@ -62,7 +62,7 @@ PYBIND11_MODULE(classic_control_envpool, m) {
       .def_readwrite("objects", &map_view_t::objects);
 
   py::class_<map_t,map_view_t>(m, "map_t");
-  py::class_<OlympicsBase>(m, "OlympicsBase")
+  py::class_<OlympicsBase>(m, "_OlympicsBase")
       .def(py::init<std::string>())
     //   .def("reset", &Publicist::reset, py::return_value_policy::reference_internal)
     //   .def("get_obs", &OlympicsBase::get_obs, py::return_value_policy::reference_internal)
