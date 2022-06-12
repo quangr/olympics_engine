@@ -11,6 +11,83 @@ namespace helperfunction {
 double cross_prod(point2 v1, point2 v2) {
   return v1.x() * v2.y() - v2.x() * v1.y();
 }
+point2 point_rotate(point2 center, point2 point, double theta) {
+  auto px = point[0] - center[0];
+  auto py = point[1] - center[1];
+
+  auto nx = point2(cos(theta * M_PI / 180), sin(theta * M_PI / 180));
+  auto ny = point2(-sin(theta * M_PI / 180), cos(theta * M_PI / 180));
+  auto new_x = px * nx[0] + py * nx[1];
+  auto new_y = px * ny[0] + py * ny[1];
+  return {new_x, new_y};
+}
+
+void DDA_line(rawimage_t &matrix, std::vector<point2> draw_line, double vis,
+              double vis_clear, Color value, double view_back) {
+  auto size = int(vis / vis_clear);
+  assert(matrix.rows() == size);
+  if (draw_line.size() == 1) {
+    auto point1 = draw_line[0];
+    auto x1 = point1[0], y1 = point1[1];
+    x1 += view_back;
+    y1 += vis / 2;
+    x1 /= vis_clear;
+    y1 /= vis_clear;
+    auto x = x1 - 0.5;
+    auto y = y1 - 0.5;
+    matrix(size - 1 - int(x), int(y)) = 1;
+    return;
+  } else {
+    if (draw_line.size() == 2) {
+      auto p1 = draw_line[0];
+      auto p2 = draw_line[1];
+      auto x1 = p1[0], y1 = p1[1], x2 = p2[0], y2 = p2[1];
+      x1 += view_back;
+      y1 += vis / 2;
+      x1 /= vis_clear;
+      y1 /= vis_clear;
+      x2 += view_back;
+      y2 += vis / 2;
+      x2 /= vis_clear;
+      y2 /= vis_clear;
+
+      auto dx = x2 - x1;
+      auto dy = y2 - y1;
+      auto steps = std::max(abs(dx), abs(dy));
+
+      if (steps == 0) {
+        x1 = p1[0];
+        y1 = p1[1];
+        x1 += view_back;
+        y1 += vis / 2;
+        x1 /= vis_clear;
+        y1 /= vis_clear;
+
+        auto x = x1 - 0.5;
+        auto y = y1 - 0.5;
+        matrix(size - 1 - int(x), int(y)) = 1;
+        return;
+      }
+      auto delta_x = dx / steps;
+      auto delta_y = dy / steps;
+      auto x = x1 - 0.5;
+      auto y = y1 - 0.5;
+
+      assert(0 <= int(x) && int(x) <= size - 1);
+      assert(0 <= int(y) && int(y) <= size - 1);
+      for (int i = 0; i < int(steps + 1); i++) {
+        assert((0 <= size - 1 - int(x)) && (size - 1 - int(x) < size) &&
+               (0 <= int(y)) && (int(y) < size));
+        matrix(size - 1 - int(x), int(y)) = value;
+        x += delta_x;
+        y += delta_y;
+      }
+      return;
+    } else {
+      THROW(std::runtime_error, "not implemented error");
+    }
+  }
+}
 
 double point2line(point2 l1, point2 l2, point2 point) {
   // :param l1: coord of line start point
@@ -23,12 +100,12 @@ double point2line(point2 l1, point2 l2, point2 point) {
   return abs(cross_prod(l1c, l1l2)) / l1l2_length;
 }
 
-bool line_intersect(mat2 line1, mat2 line2) {
-  auto p = line1.row(0);
-  auto r = point2(line1(1, 0) - line1(0, 0), line1(1, 1) - line1(0, 1));
+bool line_intersect(std::vector<point2> line1, std::vector<point2> line2) {
+  auto p = line1[0];
+  auto r = point2(line1[1][0] - line1[0][0], line1[1][1] - line1[0][1]);
 
-  auto q = line2.row(0);
-  auto s = point2(line2(1, 0) - line2(0, 0), line2(1, 1) - line2(0, 1));
+  auto q = line2[0];
+  auto s = point2(line2[1][0] - line2[0][0], line2[1][1] - line2[0][1]);
 
   auto rs = cross_prod(r, s);
   if (rs == 0)
@@ -43,6 +120,26 @@ bool line_intersect(mat2 line1, mat2 line2) {
     return false;
 }
 
+std::optional<point2> line_intersect_p(std::vector<point2> line1,
+                                       std::vector<point2> line2) {
+  auto p = line1[0];
+  auto r = point2(line1[1][0] - line1[0][0], line1[1][1] - line1[0][1]);
+
+  auto q = line2[0];
+  auto s = point2(line2[1][0] - line2[0][0], line2[1][1] - line2[0][1]);
+
+  auto rs = cross_prod(r, s);
+  if (rs == 0)
+    return {};
+  auto q_p = point2(q[0] - p[0], q[1] - p[1]);
+
+  auto t = cross_prod(q_p, s) / rs;
+  auto u = cross_prod(q_p, r) / rs;
+  if (0 <= t && t <= 1 && 0 <= u && u <= 1)
+    return point2{p[0] + t * r[0], p[1] + t * r[1]};
+  else
+    return {};
+}
 point2 closest_point(point2 l1, point2 l2, point2 point) {
   auto A1 = l2[1] - l1[1];
   auto B1 = l1[0] - l2[0];
@@ -120,12 +217,45 @@ bool check_radian(double start_radian, double end_radian, double angle) {
   }
 };
 
+bool get_obs_check_radian(double start_radian, double end_radian,
+                          double angle) {
+  if (start_radian >= 0) {
+    if (end_radian >= 0 && end_radian >= start_radian)
+      return start_radian <= angle && angle <= end_radian;
+    if (end_radian >= 0 && end_radian < start_radian)
+      return !(start_radian <= angle && angle <= end_radian);
+    if (end_radian <= 0) {
+      if (angle >= 0 && angle >= start_radian)
+        return true;
+      else
+        return (angle < 0 && angle <= end_radian);
+    }
+  } else {
+    if (end_radian >= 0) {
+      if (angle >= 0 && angle < end_radian)
+        return true;
+      else
+        return angle < 0 && angle > start_radian;
+    } else {
+      if (end_radian < 0 && end_radian > start_radian)
+        return angle < 0 && start_radian <= angle && angle <= end_radian;
+      if (end_radian < 0 && end_radian < start_radian)
+        return !(end_radian <= angle && angle <= start_radian);
+    }
+  }
+};
+
+double distance_to_line(point2 l1, point2 l2, point2 pos) {
+  auto closest_p = closest_point(l1, l2, pos);
+  return (closest_p - pos).norm();
+};
+
 } // namespace helperfunction
 void readjson(std::string filename, map_t &map);
 
 OlympicsBase::OlympicsBase(std::string mappath) {
   readjson(mappath, map);
-  generate_map(map);
+  generate_map();
   merge_map();
   this->view_setting = map.view;
   reset();
@@ -138,13 +268,18 @@ std::vector<point2> OlympicsBase::get_obs_boundaray(point2 init_position,
   auto x_init = init_position[0];
   auto y_init = init_position[1];
   for (auto unit : std::vector<point2>{{0, 1}, {1, 1}, {1, -1}, {0, -1}}) {
-    auto x = x_init + r + visibility * unit[0];
+    double x;
+    if (VIEW_ITSELF) {
+      x = x_init + visibility * unit[0] - VIEW_BACK * visibility;
+    } else {
+      x = x_init + r + visibility * unit[0];
+    }
     auto y = y_init - visibility * unit[1] / 2;
     boundary.push_back({x, y});
   }
   return boundary;
 }
-void OlympicsBase::generate_map(const map_t &map) {
+void OlympicsBase::_generate_map(const map_t &map) {
   for (size_t index = 0; index < map.agents.size(); index++) {
     auto item = map.agents[index];
     this->agent_list.push_back(item);
@@ -186,8 +321,6 @@ void OlympicsBase::init_state() {
 
 obslist_t OlympicsBase::reset() {
   // set_seed()
-  generate_map(map);
-  merge_map();
   init_state();
   this->step_cnt = 0;
   this->done = false;
@@ -235,7 +368,7 @@ obslist_t OlympicsBase::get_obs() {
     auto visibility = agent_list[agent_idx].visibility;
     auto v_clear = agent_list[agent_idx].visibility_clear;
     auto obs_size = int(visibility / v_clear);
-
+    auto view_back = visibility * this->VIEW_BACK;
     std::vector<point2> agent_current_boundary;
     for (auto b : obs_boundary_init[agent_idx]) {
       auto m = b[0];
@@ -254,9 +387,23 @@ obslist_t OlympicsBase::get_obs() {
       agent_current_boundary.push_back({x_new_, -y_new_});
     }
     obs_boundary.push_back(agent_current_boundary);
+
+    auto view_center_x =
+        agent_x + (visibility / 2 - view_back / 2) *
+                      cos(theta * M_PI / 180); // start from agent x,y
+    auto view_center_y =
+        agent_y + (visibility / 2 - view_back / 2) * sin(theta * M_PI / 180);
+
+    auto view_center = point2(view_center_x, view_center_y);
+    auto view_R = visibility * sqrt(2) / 2;
+    objects_t line_consider;
+
+    for (auto item : map.objects)
+      item->update_line_consider(view_R, view_center, line_consider);
     for (auto item : map.objects)
       item->update_cur_pos(agent_x, agent_y);
-    auto vec_oc = point2(agent.r + visibility / 2, 0);
+    auto vec_oc = VIEW_ITSELF ? point2(visibility / 2 - view_back / 2, 0)
+                              : point2(agent.r + visibility / 2, 0);
     auto c_x = vec_oc[0];
     auto c_y = vec_oc[1];
     auto tempp = rotate2(c_x, c_y, theta);
@@ -306,11 +453,45 @@ obslist_t OlympicsBase::get_obs() {
       agent_self.to_another_agent_rotated.push_back(
           rotate2(vec_ob[0], vec_ob[1], theta_obj));
     }
+
+    for (auto obj : line_consider)
+      obj->update_line(obs_map, visibility, v_clear, agent_x, agent_y, theta,
+                       view_back);
+
+    if (map_objects.size() == 0 && VIEW_ITSELF) {
+      for (int i = 0; i < obs_size; i++) {
+        auto x = visibility - v_clear * i - v_clear / 2 - view_back;
+        for (int j = 0; j < obs_size; j++) {
+          auto y = visibility / 2 - v_clear * j - v_clear / 2;
+          auto point = point2(x, y);
+          auto self_center = point2(0, 0);
+          auto dis_to_itself = (point - self_center).norm();
+          if (dis_to_itself <= agent_list[agent_idx].r) {
+            obs_map(i, j) = agent_list[agent_idx].color;
+          }
+        }
+      }
+    }
     for (auto component = map_objects.rbegin(); component != map_objects.rend();
-         component++)
-      (*component)
-          ->update_obs_map(obs_map, obs_size, visibility, v_clear, theta, agent,
-                           agent_self);
+         component++) {
+      for (int i = 0; i < obs_size; i++) {
+        auto x = VIEW_ITSELF
+                     ? visibility - v_clear * i - v_clear / 2 - view_back
+                     : agent.r + visibility - v_clear * i - v_clear / 2;
+        for (int j = 0; j < obs_size; j++) {
+          auto y = visibility / 2 - v_clear * j - v_clear / 2;
+          if (VIEW_ITSELF) {
+            point2 self_center{0, 0}, point{x, y};
+            auto dis_to_itself = (point - self_center).norm();
+            if (dis_to_itself <= agent_list[agent_idx].r)
+              obs_map(i, j) = agent_list[agent_idx].color;
+          }
+          (*component)
+              ->update_obs_map(obs_map, i, j, x, y, theta, v_clear, agent,
+                               agent_self);
+        }
+      }
+    }
     obs_list.push_back(obs_map);
   }
   return obs_list;
@@ -478,8 +659,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
           else if (t_outter1 >= 0 && t_outter2 <= 0) // inside the circle
             t2 = t_outter1;
           else {
-          THROW(std::runtime_error,"not implemented error");
-
+            THROW(std::runtime_error, "not implemented error");
           }
 
         } // raise NotImplementedError
@@ -502,8 +682,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
         col_target = inner;
         col_t = t1;
       } else {
-          THROW(std::runtime_error,"not implemented error");
-
+        THROW(std::runtime_error, "not implemented error");
       }
 
     } // #print('t1 = {}, t2 = {}'.format(t1, t2))
@@ -520,7 +699,7 @@ std::tuple<double, Target> arc_t::collision_time(point2 pos, point2 v,
     return {col_t, col_target == None ? None : arc};
 
   } else {
-          THROW(std::runtime_error,"not implemented error");
+    THROW(std::runtime_error, "not implemented error");
 
     // not implement
   }
@@ -560,8 +739,7 @@ OlympicsBase::bounceable_wall_collision_time(std::vector<point2> pos_container,
           else if (temp_col_target == l1 || temp_col_target == l2)
             check = !ignore.contains({agent_idx, object_idx, temp_t});
           else {
-          THROW(std::runtime_error,"not implemented error");
-
+            THROW(std::runtime_error, "not implemented error");
           }
           // raise NotImplementedError('bounceable_wall_collision_time error')
         }
@@ -639,8 +817,7 @@ OlympicsBase::CCD_circle_collision_f(point2 old_pos1, point2 old_pos2,
       point2(old_pos1[0] - old_pos2[0], old_pos1[1] - old_pos2[1]);
   auto relative_v = point2(old_v1[0] - old_v2[0], old_v1[1] - old_v2[1]);
   if (relative_v.norm() == 0) {
-          THROW(std::runtime_error,"not implemented error");
-
+    THROW(std::runtime_error, "not implemented error");
   };
 
   auto pos_v =
@@ -914,8 +1091,7 @@ curling::step(std::deque<std::vector<double>> actions_list) {
       else if (temp_winner == 1)
         step_reward = {0., 1};
       else {
-          THROW(std::runtime_error,"not implemented error");
-
+        THROW(std::runtime_error, "not implemented error");
       }
 
       // raise NotImplementedError
@@ -951,8 +1127,7 @@ curling::step(std::deque<std::vector<double>> actions_list) {
       auto next_obs = reset(true);
       return {next_obs, step_reward, false, "game1 ends, switch position"};
     } else {
-          THROW(std::runtime_error,"not implemented error");
-
+      THROW(std::runtime_error, "not implemented error");
     }
   }
   // if (current_team == 0)

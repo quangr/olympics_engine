@@ -6,3 +6,5 @@ class OlympicsBase(_OlympicsBase):
         self.agent_record = []
         self.view_setting = map["view"]
         self.map=map
+    def generate_map(self,map) -> None:
+        self._generate_map()

@@ -115,13 +115,13 @@ class curling(OlympicsBase):
         self.obs_boundary = self.obs_boundary_init
 
         #self.check_valid_map()
-        # self.generate_map(self.map)
-        # self.merge_map()
+        self.generate_map(self.map)
+        self.merge_map()
 
-        # self.init_state()
+        self.init_state()
 
-        # self.step_cnt = 0
-        # self.done = False
+        self.step_cnt = 0
+        self.done = False
         self.release = False
 
         self.viewer = Viewer(self.view_setting)

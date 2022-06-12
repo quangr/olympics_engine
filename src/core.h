@@ -7,7 +7,7 @@
 #include "objects.hpp"
 using point2 = Eigen::Vector2d;
 using mat2 = Eigen::Matrix2d;
-
+void readjson(std::string filename, map_t &map);
 using obsmap_t = Eigen::Matrix<uint8_t, -1, -1>;
 using obslist_t = std::vector<Eigen::Matrix<uint8_t, -1, -1>>;
 class OlympicsBase {
@@ -27,7 +27,6 @@ protected:
   ignore_t global_wall_ignore;
   ignore_t global_circle_ignore;
 
-  bool done = false;
   int max_step = 500;
 
   double energy_recover_rate = 200;
@@ -45,7 +44,6 @@ protected:
 
   view_t view_setting; //   // map_num = None
   bool display_mode = false;
-  obslist_t reset();
 
   std::vector<point2> get_obs_boundaray(point2 init_position, double r,
                                         double visibility);
@@ -56,8 +54,7 @@ protected:
   circle_collision_time(std::vector<point2>, std::vector<point2>, double,
                         ignore_t);
 
-  void generate_map(const map_t &map);
-  void merge_map();
+  void _generate_map(const map_t &map);
   std::vector<point2>
   actions_to_accel(std::vector<std::vector<double>> actions_list);
   std::tuple<point2, point2, point2, point2>
@@ -160,6 +157,9 @@ protected:
   }
 
 public:
+  void generate_map() { _generate_map(map); };
+  bool done = false;
+  obslist_t reset();
   void init_state();
   std::vector<point2> agent_init_pos;
   std::vector<point2> agent_previous_pos;
@@ -169,10 +169,13 @@ public:
   std::vector<agent_t> agent_list;
   std::vector<point2> agent_accel;
   void stepPhysics(std::vector<std::vector<double>> actions_list, int step);
+  void merge_map();
   //  env hyper
   double tau = 0.1;    // delta t
   double gamma = 0.98; // v衰减系数
   double wall_restitution = 0.5;
+  bool VIEW_ITSELF = true;
+  double VIEW_BACK = 0.2;
   double circle_restitution = 0.5;
   int player_num = 2;
   int step_cnt = 0;
@@ -181,7 +184,8 @@ public:
   obslist_t get_obs();
   void add_agent(int new_agent_color, point2 start_pos, double start_init_obs,
                  double vis, double vis_clear) {
-    agent_list.push_back({1, 15, start_pos, Color(new_agent_color), vis, vis_clear});
+    agent_list.push_back(
+        {1, 15, start_pos, Color(new_agent_color), vis, vis_clear});
     agent_init_pos[agent_init_pos.size() - 1] = start_pos;
     auto new_boundary = get_obs_boundaray(start_pos, 15, vis);
     obs_boundary_init.push_back(new_boundary);
@@ -192,7 +196,7 @@ public:
     auto init_obs = start_init_obs;
     agent_theta.push_back(init_obs);
   }
-  void clear_agent(){
+  void clear_agent() {
     agent_num = 0;
     agent_list.clear();
     agent_init_pos.clear();
@@ -202,8 +206,8 @@ public:
     agent_accel.clear();
     agent_theta.clear();
   }
-  void remove_agent(int index){
-    agent_num --;
+  void remove_agent(int index) {
+    agent_num--;
     agent_list.erase(agent_list.begin() + index);
     agent_pos.erase(agent_pos.begin() + index);
     agent_v.erase(agent_v.begin() + index);
@@ -224,8 +228,8 @@ private:
   int max_n = 4;
   int round_max_step = 100;
   map_t map_copy;
-  double vis = 300;
-  double vis_clear = 10;
+  double vis = 200;
+  double vis_clear = 5;
   double top_area_gamma, down_area_gamma;
   int game_round, num_purple, num_green, purple_game_point, green_game_point;
   void cross_detect() {
@@ -441,7 +445,7 @@ public:
     obs_boundary_init.clear();
     obs_boundary = obs_boundary_init;
 
-    generate_map(map_copy);
+    _generate_map(map_copy);
     merge_map();
 
     init_state();

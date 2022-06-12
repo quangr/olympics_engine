@@ -1,10 +1,11 @@
-#!/usr/bin/env python 
-#-*- coding: utf-8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # mypy: ignore-errors
 """Unit tests for classic control environments."""
 
 from ast import Num
 from time import sleep
+import time
 from typing import Any, Tuple, Callable
 from unittest import result
 # from PIL import Image
@@ -22,11 +23,14 @@ import pygame
 # from envpool.classic_control import CurlingSimpleEnvSpec,CurlingSimpleGymEnvPool
 # from envpool.classic_control import CurlingEnvSpec, _CurlingEnvPool
 import classic_control_envpool
-from testhelper.curling import curling,IDX_TO_COLOR
+from testhelper.curling import curling, IDX_TO_COLOR
+
 
 @property
 def color(self):
     return IDX_TO_COLOR[int(self._color)]
+
+
 @property
 def type(self):
     if self.is_ball:
@@ -35,9 +39,8 @@ def type(self):
         return "agent"
 
 
-classic_control_envpool.agent_t.color=color
-classic_control_envpool.agent_t.type=type
-
+classic_control_envpool.agent_t.color = color
+classic_control_envpool.agent_t.type = type
 
 
 # class Curling(classic_control_envpool.curling):
@@ -104,12 +107,14 @@ class _CurlingTest(absltest.TestCase):
         # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
         # print('Now is a good time to attach your debugger: Run: Python: Attach')
         # ptvsd.wait_for_attach()
-        a=curling(create_scenario("curling"))
+        a = curling(create_scenario("curling"))
         print(a.reset())
         # print(a.step([[200,0],[200,0]]))
         while(True):
             a.render()
-            f=a.step(np.array([[10,10],[10,10]]))
+            f = a.step(np.array([[200, 0], [10, 10]]))
+            print(f)
+            time.sleep(0.1)
         # print("pythonpath: ", sys.executable)
         # print("Python version: ", sys.version)
         # classic_control_envpool.curling("")

@@ -22,7 +22,8 @@
 #include <tuple>
 #include <utility>
 
-TEST(OlympicsBaseTEST, TESTBUILD) { OlympicsBase("/home/quangr/olympics_engine/src/testhelper/scenario.json"); }
+// TEST(OlympicsBaseTEST, TESTBUILD) {
+// OlympicsBase("/home/quangr/olympics_engine/src/testhelper/scenario.json"); }
 TEST(CurlingTEST, TESTSTEP) {
   curling c("/home/quangr/olympics_engine/src/testhelper/scenario.json");
   c.reset();
@@ -37,6 +38,7 @@ TEST(CurlingTEST, TESTSTEP) {
     // std::cin >> p1 >> a1 >> p2 >> a2;
     // std::cout << p1 << ' ' << a1 << ' ' << p2 << ' ' << a2 << std::endl;
     // c.step({{p1, a1}, {p2, a2}});
-    c.step({{200, 0}});
+    auto [a, b, x, s] = c.step({{200, 0}});
+    std::cout << x;
   }
 }
