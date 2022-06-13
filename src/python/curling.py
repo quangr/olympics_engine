@@ -1,6 +1,6 @@
-from OlympicsBase import OlympicsBase
-from viewer import Viewer, debug
-from objects import Ball, Agent
+from python.OlympicsBase import OlympicsBase
+from python.viewer import Viewer, debug
+from python.objects import Ball, Agent
 from pathlib import Path
 CURRENT_PATH = str(Path(__file__).resolve().parent.parent)
 

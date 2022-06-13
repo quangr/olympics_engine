@@ -54,7 +54,7 @@ void DDA_line(rawimage_t &matrix, std::vector<point2> draw_line, double vis,
       auto dx = x2 - x1;
       auto dy = y2 - y1;
       auto steps = std::max(abs(dx), abs(dy));
-      std::cout << "steps:" << steps << std::endl;
+      // std::cout << "steps:" << steps << std::endl;
       if (steps == 0) {
         x1 = p1[0];
         y1 = p1[1];
@@ -79,11 +79,9 @@ void DDA_line(rawimage_t &matrix, std::vector<point2> draw_line, double vis,
         assert((0 <= size - 1 - int(x)) && (size - 1 - int(x) < size) &&
                (0 <= int(y)) && (int(y) < size));
         matrix(size - 1 - int(x), int(y)) = value;
-      std::cout<<"i:"<<size - 1 - int(x)<<",j:"<<int(y)<<std::endl;
         x += delta_x;
         y += delta_y;
       }
-      // std::cout<<"matrix:"<<matrix<<std::endl;
       return;
     } else {
       THROW(std::runtime_error, "not implemented error");

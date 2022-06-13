@@ -31,7 +31,7 @@ classic_control_envpool.agent_t.type = type
 
 class OlympicsBase(_OlympicsBase):
     def __init__(self,map) -> None:
-        super().__init__("/home/quangr/olympics_engine/src/testhelper/scenario.json")
+        super().__init__("/home/quangr/olympics_engine/src/python/scenario.json")
         self.agent_record = []
         self.view_setting = map["view"]
         self.map=map

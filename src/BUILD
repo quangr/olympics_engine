@@ -72,21 +72,20 @@ py_test(
 #     ]
 # )
 
-# py_binary(
-#     name = "env_test",
-#     srcs = ["env_test.py"],
-#     deps = [
-#         ":classic_control",
-#         requirement("numpy"),
-#         requirement("absl-py"),
-#         requirement("pygame"),
-#         requirement("matplotlib"),
-#         requirement("opencv-python-headless"),
-#         requirement("ptvsd"),
-#         requirement("torch"),
-#         requirement("tianshou"),
-#     ]
-# )
+py_binary(
+    name = "benchmark",
+    srcs = ["benchmark.py"],
+    deps = [
+        ":classic_control",
+        requirement("numpy"),
+        requirement("absl-py"),
+        requirement("pygame"),
+        requirement("matplotlib"),
+        requirement("ptvsd"),
+    ],
+    imports=[":classic_control_envpool.so"],
+    data = [":classic_control_envpool.so"]
+)
 
 
 

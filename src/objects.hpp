@@ -417,9 +417,9 @@ struct wall_t : component_t {
         }
       }
     }
-    for (auto dl : draw_line) {
-      std::cout << "[" << dl(0) << " " << dl(1) << "]" << std::endl;
-    }
+    // for (auto dl : draw_line) {
+    //   std::cout << "[" << dl(0) << " " << dl(1) << "]" << std::endl;
+    // }
     helperfunction::DDA_line(obs_map, draw_line, visibility, v_clear, color,
                              view_back);
   };
