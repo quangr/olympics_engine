@@ -1,4 +1,5 @@
 #include <math.h>
+#include <ostream>
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -197,9 +198,6 @@ struct agent_t : object_t, InternalState {
   virtual void update_obs_map(rawimage_t &obs_map, int i, int j, double x,
                               double y, double theta, double v_clear,
                               const agent_t &agent, const agent_t &agent_self) {
-    if (obs_map(i, j) > 0) {
-      return;
-    }
     int idx = temp_idx;
     auto vec_bc_ = point2(x - agent_self.to_another_agent_rotated[idx][0],
                           y - agent_self.to_another_agent_rotated[idx][1]);
@@ -347,6 +345,10 @@ struct wall_t : component_t {
   virtual void update_obs_map(rawimage_t &obs_map, int i, int j, double x,
                               double y, double theta, double v_clear,
                               const agent_t &agent, const agent_t &agent_self) {
+    if (obs_map(i, j) > 0) {
+      return;
+    }
+
     auto point = point2(x, y);
     auto distance =
         abs(helperfunction::get_distance(cur_pos_rotated, point, length, true));
@@ -398,16 +400,14 @@ struct wall_t : component_t {
     } else {
       if (intersect_p.size() == 1) {
         draw_line.push_back(*intersect_p.begin());
-        if ((0 < rotate_pos[0][0] && rotate_pos[0][0] < visibility) &&
+        if ((0 < rotate_pos[0][0]+view_back && rotate_pos[0][0]+view_back < visibility) &&
             (abs(rotate_pos[0][1]) < visibility / 2)) {
           draw_line.push_back(rotate_pos[0]);
 
         } else {
-          if ((0 < rotate_pos[1][0] && rotate_pos[1][0] < visibility) &&
+          if ((0 < rotate_pos[1][0]+view_back && rotate_pos[1][0]+view_back < visibility) &&
               (abs(rotate_pos[1][1]) < visibility / 2))
             draw_line.push_back(rotate_pos[1]);
-          else
-            return;
         }
       } else {
         if (intersect_p.size() == 2) {
@@ -416,6 +416,9 @@ struct wall_t : component_t {
           }
         }
       }
+    }
+    for (auto dl : draw_line) {
+      std::cout << "[" << dl(0) << " " << dl(1) << "]" << std::endl;
     }
     helperfunction::DDA_line(obs_map, draw_line, visibility, v_clear, color,
                              view_back);
@@ -556,6 +559,10 @@ struct arc_t : component_t {
   virtual void update_obs_map(rawimage_t &obs_map, int i, int j, double x,
                               double y, double theta, double v_clear,
                               const agent_t &agent, const agent_t &agent_self) {
+    if (obs_map(i, j) > 0) {
+      return;
+    }
+
     auto radius = R;
     auto x_2center = x - cur_pos_rotated[0][0];
     auto y_2center = y - cur_pos_rotated[0][1];

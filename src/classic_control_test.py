@@ -4,307 +4,58 @@
 """Unit tests for classic control environments."""
 
 from ast import Num
+from cgitb import reset
+import logging
 from time import sleep
 import time
 from typing import Any, Tuple, Callable
 from unittest import result
-# from PIL import Image
 import sys
 import numpy as np
 from absl.testing import absltest
-# import testhelper.core
-# import classic_control_envpool
-# import testhelper.curling
-# import testhelper.helperfunction
-from testhelper.generator import create_scenario
-# import matplotlib.pyplot as plt
-# import cv2
+from python.generator import create_scenario
 import pygame
-# from envpool.classic_control import CurlingSimpleEnvSpec,CurlingSimpleGymEnvPool
-# from envpool.classic_control import CurlingEnvSpec, _CurlingEnvPool
 import classic_control_envpool
-from testhelper.curling import curling, IDX_TO_COLOR
-
-
-@property
-def color(self):
-    return IDX_TO_COLOR[int(self._color)]
-
-
-@property
-def type(self):
-    if self.is_ball:
-        return "ball"
-    else:
-        return "agent"
-
-
-classic_control_envpool.agent_t.color = color
-classic_control_envpool.agent_t.type = type
-
-
-# class Curling(classic_control_envpool.curling):
-#     def __init__(self)->None:
-#         super(Curling, self).__init__("/home/quangr/olympics_engine/src/testhelper/scenario.json")
-#         self.display_mode = False
-#         self.map=create_scenario("curling")
-#         self.viewer=Viewer(self.map["view"])
-#         self.draw_obs=True
-
-#     def render(self, info=None)->None:
-#         if not self.display_mode:
-#             self.viewer.set_mode()
-#             self.display_mode = True
-#         self.viewer.draw_background()
-#         for w in self.map["objects"]:
-#             self.viewer.draw_map(w)
-#         self.viewer.draw_ball(self.agent_pos, self.agent_list)
-#         # if self.show_traj:
-#         #     self.get_trajectory()
-#         #     self.viewer.draw_trajectory(self.agent_record, self.agent_list)
-#         # self.viewer.draw_direction(self.agent_pos, self.agent_accel)
-#         # self.viewer.draw_map()
-
-#         if self.draw_obs:
-#             self.viewer.draw_obs(self.obs_boundary, self.agent_list)
-#             self.viewer.draw_view([self.obs_list], self.agent_list, leftmost_x=500, upmost_y=10)
-
-#         #draw energy bar
-#         #debug('agent remaining energy = {}'.format([i.energy for i in self.agent_list]), x=100)
-#         # self.viewer.draw_energy_bar(self.agent_list)
-#         debug('Agent 0', x=570, y=110)
-#         debug('Agent 1', x=640, y=110)
-#         # if self.map_num is not None:
-#         #     debug('Map {}'.format(self.map_num), x=100)
-
-#         # debug('mouse pos = '+ str(pygame.mouse.get_pos()))
-#         debug('Step: ' + str(self.step_cnt), x=30)
-#         if info is not None:
-#             debug(info, x=100)
-
-
-#         for event in pygame.event.get():
-#             # 如果单击关闭窗口，则退出
-#             if event.type == pygame.QUIT:
-#                 sys.exit()
-#         pygame.display.flip()
-
-# class _RenderTest(absltest.TestCase):
-
-#     def testrender(self) -> None:
-#         a =Curling()
-#         a.reset()
-#         while(True):
-#             a.render()
-#             f=a.step(np.array([[50,0]]))
-#             print(f)
-
+from python.curling import curling, IDX_TO_COLOR
+from olympics_engine.main import getgame
+logger = logging.getLogger()
+logger.level = logging.DEBUG
+np.set_printoptions(precision=3)
 
 class _CurlingTest(absltest.TestCase):
-
+    # def testrender(self) -> None:
+    #     a = curling(create_scenario("curling"))
+    #     a.reset()
+    #     while(True):
+    #         a.render()
+    #         a.step([[200, 0], [10, 10]])
+    #         # if(a.step_cnt==16):
+    #         #     time.sleep(20)
+    #         time.sleep(.1)
     def testbuild(self) -> None:
         # import ptvsd
         # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
         # print('Now is a good time to attach your debugger: Run: Python: Attach')
         # ptvsd.wait_for_attach()
         a = curling(create_scenario("curling"))
-        print(a.reset())
+        b = getgame("curling")
+        self.assertTrue(np.equal(a.reset()[0]['agent_obs'],b.reset()[0]['agent_obs']).all())
         # print(a.step([[200,0],[200,0]]))
-        while(True):
-            a.render()
-            f = a.step(np.array([[200, 0], [10, 10]]))
-            print(f)
+        action=[[200, 0], [10, 10]]
+        actionhistory=[]
+        try:
+            while(True):
+                # a.render()
+                actionhistory.append(action)
+                r1 = [x['agent_obs'] for x in a.step(action)[0]]
+                r2 = [x['agent_obs'].astype(np.uint8) for x in b.step(action)[0]]
+                self.assertTrue(np.equal(np.array(a.agent_pos),np.array(b.agent_pos)).all(),f'pos unexpectedly equals for player one in step {b.step_cnt}.')              
+                # self._formatMessage(
+                self.assertTrue(np.equal(r1[0],r2[0]).all(),f'output unexpectedly equals for player one in step {b.step_cnt}.\nactionhistory:{actionhistory}\n')
+                self.assertTrue(np.equal(r1[1],r2[1]).all(),f'output unexpectedly equals for player two in step {b.step_cnt}.\nactionhistory:{actionhistory}\n')
+        finally:
+            logger.removeHandler(stream_handler)
             time.sleep(0.1)
-        # print("pythonpath: ", sys.executable)
-        # print("Python version: ", sys.version)
-        # classic_control_envpool.curling("")
-        # config = CurlingEnvSpec.gen_config(num_envs=1,max_episode_steps=200, seed=0)
-        # spec = CurlingEnvSpec(config)
-        # env0 = CurlingGymEnvPool(spec)
-        # a=env0.reset()
-        # print(a)
-        # act_space = env0.action_space
-        # # action = np.array([ for _ in range(num_envs)])
-        # print(act_space)
-        # a=env0.step(np.array([[12,2,2,2] for _ in range(1)]))
-        # print(a)
-#   # def run_space_check(self, spec_cls: Any) -> None:
-#   #   """Check if envpool.observation_space == gym.make().observation_space."""
-#   #   # TODO(jiayi): wait for #27
-
-#   # def run_deterministic_check(
-#   #   self,
-#   #   spec_cls: Any,
-#   #   envpool_cls: Any,
-#   #   obs_range: Tuple[np.ndarray, np.ndarray],
-#   #   **kwargs: Any,
-#   # ) -> None:
-#   #   num_envs = 4
-#   #   env0 = envpool_cls(
-#   #     spec_cls(spec_cls.gen_config(num_envs=num_envs, seed=0, **kwargs))
-#   #   )
-#   #   env1 = envpool_cls(
-#   #     spec_cls(spec_cls.gen_config(num_envs=num_envs, seed=0, **kwargs))
-#   #   )
-#   #   env2 = envpool_cls(
-#   #     spec_cls(spec_cls.gen_config(num_envs=num_envs, seed=1, **kwargs))
-#   #   )
-#   #   act_space = env0.action_space
-#   #   eps = np.finfo(np.float32).eps
-#   #   obs_min, obs_max = obs_range[0] - eps, obs_range[1] + eps
-#   #   for _ in range(5000):
-#   #     action = np.array([act_space.sample() for _ in range(num_envs)])
-#   #     obs0 = env0.step(action)[0]
-#   #     obs1 = env1.step(action)[0]
-#   #     obs2 = env2.step(action)[0]
-#   #     np.testing.assert_allclose(obs0, obs1)
-#   #     self.assertFalse(np.allclose(obs0, obs2))
-#   #     self.assertTrue(np.all(obs_min <= obs0), obs0)
-#   #     self.assertTrue(np.all(obs_min <= obs2), obs2)
-#   #     self.assertTrue(np.all(obs0 <= obs_max), obs0)
-#   #     self.assertTrue(np.all(obs2 <= obs_max), obs2)
-
-#   # def run_align_check(self, env0: gym.Env, env1: Any, reset_fn: Any) -> None:
-#   #   for _ in range(10):
-#   #     reset_fn(env0, env1)
-#   #     d0 = False
-#   #     while not d0:
-#   #       a = env0.action_space.sample()
-#   #       o0, r0, d0, _ = env0.step(a)
-#   #       o1, r1, d1, _ = env1.step(np.array([a]), np.array([0]))
-#   #       np.testing.assert_allclose(o0, o1[0], atol=1e-6)
-#   #       np.testing.assert_allclose(r0, r1[0])
-#   #       np.testing.assert_allclose(d0, d1[0])
-
-#   # def test_Curling(self) -> None:
-#   #   fmax = np.finfo(np.float32).max
-#   #   obs_max = np.array([4.8, fmax, np.pi / 7.5, fmax])
-#   #   self.run_deterministic_check(
-#   #     CurlingEnvSpec, CurlingGymEnvPool, (-obs_max, obs_max)
-#   #   )
-#   def test_cross_prod(self)->None:
-#     # return
-#     self.assertTrue(classic_control_envpool.cross_prod([1,0],[5,2])==testhelper.core.cross_prod([1,0],[5,2]))
-#   def test_point2line(self)->None:
-#     self.assertTrue(classic_control_envpool.point2line([1,0],[5,2],[2,9])==testhelper.core.point2line([1,0],[5,2],[2,9]))
-#   def test_line_intersect(self)->None:
-#     for i in range(100):
-#       testcase=[(np.random.rand(2,2)-.5)*100000,(np.random.rand(2,2)-.5)*100000]
-#       self.assertTrue(classic_control_envpool.line_intersect(*testcase)==testhelper.core.line_intersect(*testcase))
-#   def test_closest_point(self)->None:
-#     for i in range(100):
-#       testcase=[(np.random.rand(2)-.5)*100000,(np.random.rand(2)-.5)*100000,(np.random.rand(2)-.5)*100000]
-#       self.assertTrue((classic_control_envpool.closest_point(*testcase)==testhelper.core.closest_point(*testcase)).all())
-# class _ViewerTest(absltest.TestCase):
-#   def randomtest(self,input:Callable,fun1:Callable,fun2:Callable)->None:
-#       for i in range(1000):
-#         testcase=input()
-#         result=[fun1(*testcase),fun2(*testcase)]
-#         self.assertTrue(np.equal(result[0],result[1]).all(),"result:"+str(result)+"\ntestcase:"+str(testcase))
-
-#   def test_Build(self)->None:
-#     setting={'height':120, 'width':100, 'edge':200}
-#     v=classic_control_envpool.Viewer(**setting)
-#     # self.assertTrue(v.width==100)
-#     # self.assertTrue(v.height==120)
-
-#   def test_check_radian(self)->None:
-#     self.randomtest(lambda:[(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000],
-#     classic_control_envpool.check_radian,
-# testhelper.helperfunction.check_radian
-#     )
-
-#   def test_rotate(self)->None:
-#     self.randomtest(lambda:[(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000],
-#     classic_control_envpool.rotate,
-# testhelper.helperfunction.rotate
-#     )
-
-#   def test_rotate2(self)->None:
-#     self.randomtest(lambda:[(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000,(np.random.rand()-.5)*1000],
-#     classic_control_envpool.rotate2,
-# testhelper.helperfunction.rotate2
-#     )
-#   def get_distance(self)->None:
-#     self.randomtest(lambda:[(np.random.rand()-.5)*1000,(np.random.rand(2)-.5)*1000,(np.random.rand()-.5)*1000,np.random.rand()>0.5],
-#     classic_control_envpool.get_distance,
-# testhelper.helperfunction.get_distance
-#     )
-
-# class _GeneratorTest(absltest.TestCase):
-#   def test_readjson(self)->None:
-#       print(classic_control_envpool.readjson("/app/envpool/classic_control/testhelper/scenario.json"))
-
-
-# class _OlympicsBaseTest(absltest.TestCase):
-
-#   def test_Build(self)->None:
-#     a=classic_control_envpool.OlympicsBase()
-#     my=np.array(a.get_obs()[0])
-
-#     plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
-#     # print(testhelper.core.OlympicsBase(create_scenario("curling")).obs_list)
-#     self.assertTrue((testhelper.core.OlympicsBase(create_scenario("curling")).obs_list[0]==my).all())
-#     # self.assertTrue(v.height==120)
-
-# class _OlympicsBaseTest(absltest.TestCase):
-
-#   # def test_determine(self)->None:
-#   #   import ptvsd
-#   #   ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-#   #   print('Now is a good time to attach your debugger: Run: Python: Attach')
-#   #   ptvsd.wait_for_attach()
-#   #   env0=classic_control_envpool.curling()
-#   #   env1=testhelper.curling.curling(create_scenario("curling"))
-#   #   env0.reset()
-#   #   env1.reset()
-#   #   for i in range(1000):
-#   #     # d0 = False
-#   #     # while not d0:
-#   #     print(f"step{i}", flush=True)
-#   #     my=env0.step([[200,0],[200,0]])
-#   #     my1=env1.step([[200,0],[200,0]])
-#   #     print(my[1:],my1[1:])
-#   #     self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
-#   #     # self.assertTrue(my[1]==list(my1[1]))
-#   #     # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
-#   #     # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
-
-#   def run_align_check(self, env0: Any, env1: Any, reset_fn: Any,step:int=200) -> None:
-#     # import logging
-#     # from logging.handlers import RotatingFileHandler
-
-#     # logging.basicConfig(handlers=[RotatingFileHandler(filename="/app/logs/align",
-#     #                     mode='w', maxBytes=512000, backupCount=4)], level=logging.INFO,
-#     #                     format='%(levelname)s %(asctime)s %(message)s',
-#     #                     datefmt='%m/%d/%Y%I:%M:%S %p')
-
-#     # logger = logging.getLogger('my_logger')
-#     actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(step)]
-#     for i in range(step):
-#       # logger.info('This is a log message!')
-#       reset_fn(env0, env1)
-#       # d0 = False
-#       # while not d0:
-#       print(f"step{i}",flush=True)
-#       my=env0.step(actions[i])
-#       my1=env1.step(actions[i])
-#       self.assertTrue((my[0][0]==my1[0][env0.current_team]).all(),f"step:{i}")
-#       self.assertTrue((list(my[1])==list(my1[1])),f"step:{i},reward0,{list(my[1])},reward1:{list(my1[1])},")
-#   def test_random(self)->None:
-#     # import ptvsd
-#     # ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
-#     # print('Now is a good time to attach your debugger: Run: Python: Attach')
-#     # ptvsd.wait_for_attach()
-#     def reset_fn(env0:Any, env1:Any) -> None:
-#       env0.reset()
-#       env1.reset()
-#     for iter_i in range(2):
-#       a=classic_control_envpool.curling()
-#       testa=testhelper.curling.curling(create_scenario("curling"))
-#       self.run_align_check(a,testa,reset_fn,2000)
-#       # actions=[[[np.random.rand()*300-100,np.random.rand()*60-30],[np.random.rand()*300-100,np.random.rand()*60-30]] for _ in range(50)]
-#       # plt.imsave('/app/temp/test1.jpg', cv2.resize(my, (500, 500), interpolation=cv2.INTER_NEAREST))
 
 
 if __name__ == "__main__":

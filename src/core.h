@@ -381,7 +381,7 @@ public:
     release = false;
     gamma = top_area_gamma;
     round_step = 0;
-    return _render ? get_obs() : obs_list;
+    return get_obs() ;
   }
   int current_winner() {
     auto center = point2(300, 500);

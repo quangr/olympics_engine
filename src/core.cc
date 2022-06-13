@@ -54,7 +54,7 @@ void DDA_line(rawimage_t &matrix, std::vector<point2> draw_line, double vis,
       auto dx = x2 - x1;
       auto dy = y2 - y1;
       auto steps = std::max(abs(dx), abs(dy));
-
+      std::cout << "steps:" << steps << std::endl;
       if (steps == 0) {
         x1 = p1[0];
         y1 = p1[1];
@@ -79,9 +79,11 @@ void DDA_line(rawimage_t &matrix, std::vector<point2> draw_line, double vis,
         assert((0 <= size - 1 - int(x)) && (size - 1 - int(x) < size) &&
                (0 <= int(y)) && (int(y) < size));
         matrix(size - 1 - int(x), int(y)) = value;
+      std::cout<<"i:"<<size - 1 - int(x)<<",j:"<<int(y)<<std::endl;
         x += delta_x;
         y += delta_y;
       }
+      // std::cout<<"matrix:"<<matrix<<std::endl;
       return;
     } else {
       THROW(std::runtime_error, "not implemented error");
@@ -353,12 +355,15 @@ void arc_t::update_cur_pos(double agent_x, double agent_y) {
 }
 
 obslist_t OlympicsBase::get_obs() {
+  obslist_t obs_list;
   obs_boundary.clear();
   obsmap_t obs_map;
   for (size_t agent_idx = 0; agent_idx < agent_list.size(); agent_idx++) {
     auto agent = agent_list[agent_idx];
-    if (agent.is_ball)
+    if (agent.is_ball){
+      obs_list.push_back(obs_map);
       continue;
+    }
     auto theta_copy = agent_theta[agent_idx];
     auto agent_pos = this->agent_pos;
     auto agent_x = agent_pos[agent_idx][0];
@@ -472,20 +477,19 @@ obslist_t OlympicsBase::get_obs() {
         }
       }
     }
-    for (auto component = map_objects.rbegin(); component != map_objects.rend();
-         component++) {
-      for (int i = 0; i < obs_size; i++) {
-        auto x = VIEW_ITSELF
-                     ? visibility - v_clear * i - v_clear / 2 - view_back
-                     : agent.r + visibility - v_clear * i - v_clear / 2;
-        for (int j = 0; j < obs_size; j++) {
-          auto y = visibility / 2 - v_clear * j - v_clear / 2;
-          if (VIEW_ITSELF) {
-            point2 self_center{0, 0}, point{x, y};
-            auto dis_to_itself = (point - self_center).norm();
-            if (dis_to_itself <= agent_list[agent_idx].r)
-              obs_map(i, j) = agent_list[agent_idx].color;
-          }
+    for (int i = 0; i < obs_size; i++) {
+      auto x = VIEW_ITSELF ? visibility - v_clear * i - v_clear / 2 - view_back
+                           : agent.r + visibility - v_clear * i - v_clear / 2;
+      for (int j = 0; j < obs_size; j++) {
+        auto y = visibility / 2 - v_clear * j - v_clear / 2;
+        if (VIEW_ITSELF) {
+          point2 self_center{0, 0}, point{x, y};
+          auto dis_to_itself = (point - self_center).norm();
+          if (dis_to_itself <= agent_list[agent_idx].r)
+            obs_map(i, j) = agent_list[agent_idx].color;
+        }
+        for (auto component = map_objects.rbegin();
+             component != map_objects.rend(); component++) {
           (*component)
               ->update_obs_map(obs_map, i, j, x, y, theta, v_clear, agent,
                                agent_self);
@@ -494,6 +498,7 @@ obslist_t OlympicsBase::get_obs() {
     }
     obs_list.push_back(obs_map);
   }
+  this->obs_list=obs_list;
   return obs_list;
 }
 
@@ -1067,9 +1072,9 @@ curling::step(std::deque<std::vector<double>> actions_list) {
     cross_detect();
   step_cnt += 1;
   round_step += 1;
-  auto obs_next = obs_list;
-  if (_render)
-    obs_next = get_obs();
+  // auto obs_next = obs_list;
+  // if (_render)
+  auto obs_next = get_obs();
   auto done = is_terminal();
   reward_t step_reward;
   if (!done) {
